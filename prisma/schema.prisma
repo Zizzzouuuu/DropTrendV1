@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" 
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(cuid())
+  name            String?
+  email           String?        @unique
+  password        String?
+  subscription    String         @default("free") // "free", "starter", "pro"
+  subscriptionPlan String        @default("monthly") // "monthly", "yearly"
+  shopifyConnected Boolean       @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Profile fields
+  bio             String?
+  avatar          String?
+  language        String         @default("fr")
+
+  savedProducts   SavedProduct[]
+  integrations    Integration[]
+  trackedStores   TrackedStore[]
+  savedAliProducts SavedAliProduct[]
+  shopifyImports   ShopifyImport[]
+}
+
+// ============================================
+// ENHANCED SHOPIFY STORE TRACKER
+// ============================================
+
+model TrackedStore {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  url         String
+  status      String   @default("pending") // "pending", "scanning", "active", "error"
+  shopName    String?
+  logo        String?
+  
+  // Store Metrics
+  totalProducts     Int      @default(0)
+  avgProductPrice   Float?
+  minProductPrice   Float?
+  maxProductPrice   Float?
+  
+  // Traffic Estimation (via heuristics)
+  estimatedTraffic  String?   // "low", "medium", "high", "very_high"
+  estimatedRevenue  String?
+  
+  // Social & Marketing Detection
+  facebookPixel     Boolean  @default(false)
+  googleAnalytics   Boolean  @default(false)
+  tiktokPixel       Boolean  @default(false)
+  
+  // Categories detected
+  categories        String?   // JSON array
+  mainNiche         String?
+  
+  // Timestamps
+  lastCheck   DateTime @default(now())
+  firstSeen   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  snapshots       StoreSnapshot[]
+  trackedProducts TrackedProduct[]
+}
+
+model StoreSnapshot {
+  id            String   @id @default(cuid())
+  store         TrackedStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId       String
+  
+  totalProducts   Int
+  avgPrice        Float?
+  newProducts     Int      @default(0)
+  removedProducts Int      @default(0)
+  
+  snapshotDate  DateTime @default(now())
+}
+
+model TrackedProduct {
+  id          String   @id @default(cuid())
+  store       TrackedStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId     String
+  
+  externalId  String    // Shopify product ID from scraped store
+  name        String
+  price       Float
+  compareAtPrice Float?
+  imageUrl    String?
+  productUrl  String
+  vendor      String?
+  productType String?
+  
+  // Tracking
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+  priceHistory String?  // JSON: [{ date, price }]
+  isActive    Boolean  @default(true)
+  isBestseller Boolean @default(false)
+  
+  @@unique([storeId, externalId])
+}
+
+// ============================================
+// ALIEXPRESS PRODUCT FINDER AI
+// ============================================
+
+model AliExpressProduct {
+  id            String   @id @default(cuid())
+  aliexpressId  String   @unique
+  name          String
+  description   String   @db.Text
+  price         Float
+  originalPrice Float?
+  rating        Float?
+  orders        Int      @default(0)
+  imageUrl      String
+  images        String?  // JSON array of image URLs
+  supplier      String?
+  shippingInfo  String?
+  
+  // AI Analysis Results
+  aiScore       Int      @default(0)     // 0-100
+  winnerStatus  String   @default("analyzing") // "analyzing", "winner", "potential", "risky", "rejected"
+  niche         String?
+  trendScore    Float    @default(0)
+  competitionLevel String? // "low", "medium", "high"
+  profitMargin  Float?
+  suggestedPrice Float?
+  marketingAngle String? @db.Text
+  targetAudience String?
+  
+  // Metadata
+  productUrl    String
+  category      String?
+  scrapedAt     DateTime @default(now())
+  analyzedAt    DateTime?
+  
+  savedBy       SavedAliProduct[]
+  importedTo    ShopifyImport[]
+}
+
+model SavedAliProduct {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  product   AliExpressProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  savedAt   DateTime @default(now())
+  notes     String?
+  
+  @@unique([userId, productId])
+}
+
+model ShopifyImport {
+  id                String   @id @default(cuid())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  aliProduct        AliExpressProduct @relation(fields: [aliProductId], references: [id])
+  aliProductId      String
+  shopifyProductId  String?
+  status            String   @default("pending") // "pending", "importing", "success", "failed"
+  sellingPrice      Float?
+  error             String?
+  importedAt        DateTime @default(now())
+}
+
+// ============================================
+// EXISTING MODELS (UPDATED)
+// ============================================
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  cost        Float
+  margin      Float
+  supplier    String
+  niche       String
+  image       String   // URL or path
+  score       Int      // 0-100
+  status      String   // "Winner", "Potentiel", "Risqué"
+  
+  // JSON fields for rich data
+  competitors String   // Stored as JSON string or simple text for now
+  marketing   String   // Stored as JSON string or text (Ad Copy, hooks)
+  
+  createdAt   DateTime @default(now())
+  
+  savedBy     SavedProduct[]
+}
+
+model SavedProduct {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  savedAt   DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String   // "shopify"
+  accessToken String
+  shopUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
