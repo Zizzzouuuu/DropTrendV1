@@ -1,5 +1,5 @@
 'use server';
- 
+
 import { signIn, auth } from '@/auth';
 import { AuthError } from 'next-auth';
 import { db } from '@/lib/db';
@@ -16,7 +16,7 @@ export async function authenticate(
     // Force redirect to dashboard on success
     await signIn('credentials', {
       ...Object.fromEntries(formData),
-      redirectTo: '/fr/dashboard' 
+      redirectTo: '/fr/dashboard'
     });
   } catch (error) {
     // Filter out Next.js Redirect errors by checking for AuthError
@@ -29,12 +29,12 @@ export async function authenticate(
         default:
           // Check if there is a cause with a specific message (e.g. from getUser)
           if (error.cause && error.cause instanceof Error) {
-              return error.cause.message;
+            return error.cause.message;
           }
           return 'Something went wrong.';
       }
     }
-    
+
     // Rethrow all other errors (including Next.js Redirects)
     throw error;
   }
@@ -47,15 +47,27 @@ export async function register(
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const phoneNumber = formData.get('phoneNumber') as string; // NEW
 
-  if (!email || !password || !name) {
-    return 'Missing fields';
+  if (!email || !password || !name || !phoneNumber) {
+    return 'Tous les champs sont requis (Email, Mot de passe, Nom, Téléphone).';
+  }
+
+  // Security Rule: Password must be at least 12 characters
+  if (password.length < 12) {
+    return 'Le mot de passe doit contenir au moins 12 caractères pour votre sécurité.';
   }
 
   try {
     const existingUser = await db.user.findUnique({ where: { email } });
     if (existingUser) {
-      return 'Email already in use.';
+      return 'Cet email est déjà utilisé.';
+    }
+
+    // Security Rule: Unique Phone Number
+    const existingPhone = await db.user.findFirst({ where: { phoneNumber } });
+    if (existingPhone) {
+      return 'Ce numéro de téléphone est déjà lié à un compte.';
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -64,9 +76,10 @@ export async function register(
         name,
         email,
         password: hashedPassword,
+        phoneNumber, // Save verified phone
         subscription: 'free',
-        subscriptionPlan: 'monthly', // Explicitly set default
-        language: 'fr' // Explicitly set default
+        subscriptionPlan: 'monthly',
+        language: 'fr'
       },
     });
 
@@ -74,7 +87,7 @@ export async function register(
     console.error("Registration Failed:", error);
     return error instanceof Error ? error.message : 'Failed to create user.';
   }
-  
+
   // Default to French for redirection after server action
   redirect('/fr/login?registered=true');
 }

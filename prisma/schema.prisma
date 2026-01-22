@@ -25,6 +25,8 @@ model User {
   bio             String?
   avatar          String?
   language        String         @default("fr")
+  phoneNumber     String?        @unique
+
 
   savedProducts   SavedProduct[]
   integrations    Integration[]

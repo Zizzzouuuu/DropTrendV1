@@ -157,3 +157,48 @@ body {
 ::selection {
   @apply bg-blue-600/30 text-blue-400;
 }
+
+/* React Phone Number Input Dark Theme Overrides */
+.phone-input-dark-theme .PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phone-input-dark-theme .PhoneInputCountry {
+  margin-right: 0.5rem;
+}
+
+.phone-input-dark-theme .PhoneInputCountrySelect {
+  background-color: #0f172a;
+  /* slate-900 */
+  color: white;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+.phone-input-dark-theme .PhoneInputInput {
+  background-color: rgba(2, 6, 23, 0.5);
+  /* slate-950/50 */
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  /* slate-800/80 */
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: all 150ms ease-in-out;
+  outline: none;
+  width: 100%;
+}
+
+.phone-input-dark-theme .PhoneInputInput:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+  /* blue-500/50 */
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+}
+
+.phone-input-dark-theme .PhoneInputInput::placeholder {
+  color: #475569;
+  /* slate-600 */
+}

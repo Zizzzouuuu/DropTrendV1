@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, LayoutDashboard, BarChart3, Zap, LogOut, Settings, LayoutTemplate, Store, HelpCircle, FileText, Shield, Sparkles } from 'lucide-react';
+import { TrendingUp, LayoutDashboard, BarChart3, Zap, LogOut, Settings, LayoutTemplate, Store, HelpCircle, FileText, Shield, Sparkles, Calculator } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
 import { handleSignOut } from '@/lib/auth-actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -10,7 +10,7 @@ export const Sidebar = () => {
     const pathname = usePathname();
 
     const navItems = [
-        { href: '/dashboard', label: 'Base Winners', icon: LayoutDashboard },
+        { href: '/dashboard', label: 'Calculatrice Profit', icon: Calculator },
         { href: '/dashboard/sourcing', label: 'Produits Gagnants IA', icon: Sparkles },
         { href: '/dashboard/tracker', label: 'Tracker Boutique', icon: BarChart3 },
         { href: '/dashboard/ads', label: 'Analyse Publicitaire', icon: Zap },

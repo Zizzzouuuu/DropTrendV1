@@ -21,6 +21,7 @@
     "prisma": "^5.22.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-phone-number-input": "^3.4.14",
     "recharts": "^2.13.3",
     "tailwind-merge": "^2.5.4",
     "zod": "^3.23.8"

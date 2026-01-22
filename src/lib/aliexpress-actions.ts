@@ -530,3 +530,49 @@ async function createShopifyProduct(
     // Mock response for demo
     return { id: `mock_${Date.now()}` };
 }
+
+/**
+ * Get data for Profit Calculator from URL
+ */
+export async function getCalculatorData(url: string): Promise<{
+    product?: {
+        id: string;
+        name: string;
+        price: number;
+        imageUrl: string;
+        suggestedPrice?: number;
+    };
+    error?: string;
+}> {
+    try {
+        // 1. Extract ID from URL
+        const idMatch = url.match(/\/item\/(\d+)\.html/) || url.match(/productId=(\d+)/);
+        if (!idMatch) {
+            return { error: "Lien AliExpress invalide. Assurez-vous d'utiliser un lien complet (ex: https://.../item/123456.html)" };
+        }
+        const productId = idMatch[1];
+
+        // 2. Fetch Analysis (which includes details)
+        const result = await getProductAnalysis(productId);
+
+        if (result.error || !result.analysis) {
+            return { error: result.error || "Impossible de récupérer les infos du produit." };
+        }
+
+        const { product, suggestedPrice } = result.analysis; // CORRECTED PROPERTY
+
+        return {
+            product: {
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                suggestedPrice: suggestedPrice // CORRECTED USAGE
+            }
+        };
+
+    } catch (error) {
+        console.error("Calculator Error:", error);
+        return { error: "Erreur technique lors de l'analyse." };
+    }
+}
