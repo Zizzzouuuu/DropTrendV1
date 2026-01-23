@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
-import { Search, Filter, TrendingUp, Sparkles, Star, Package, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
+import React, { useState, useTransition, useEffect } from 'react';
+import { Search, Filter, TrendingUp, Sparkles, Star, Package, Bookmark, BookmarkCheck, Loader2, Trophy, Flame } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import ProductCard from './ProductCard';
 import ProductDetailModal from './ProductDetailModal';
-import { searchProducts, getTrending, ProductWithScore, SearchFilters } from '@/lib/aliexpress-actions';
+import { searchProducts, getTrending, getWinnersOfTheDay, getSavedProducts, ProductWithScore, SearchFilters } from '@/lib/aliexpress-actions';
 
 interface SourcingClientProps {
     initialProducts: ProductWithScore[];
 }
+
+type TabType = 'winners' | 'search' | 'saved';
 
 const NICHES = [
     "Tous", "Tech & Gadgets", "Health & Wellness", "Home & Living",
@@ -24,7 +26,10 @@ const SCORE_FILTERS = [
 ];
 
 export default function SourcingClient({ initialProducts }: SourcingClientProps) {
+    const [activeTab, setActiveTab] = useState<TabType>('winners');
     const [products, setProducts] = useState<ProductWithScore[]>(initialProducts);
+    const [winnersProducts, setWinnersProducts] = useState<ProductWithScore[]>([]);
+    const [savedProductsList, setSavedProductsList] = useState<ProductWithScore[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedNiche, setSelectedNiche] = useState('Tous');
     const [minScore, setMinScore] = useState(0);
@@ -33,6 +38,33 @@ export default function SourcingClient({ initialProducts }: SourcingClientProps)
     const [showFilters, setShowFilters] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [isSearching, setIsSearching] = useState(false);
+    const [isLoadingWinners, setIsLoadingWinners] = useState(true);
+
+    // Load Winners on mount
+    useEffect(() => {
+        const loadWinners = async () => {
+            setIsLoadingWinners(true);
+            const result = await getWinnersOfTheDay();
+            if (result.products) {
+                setWinnersProducts(result.products);
+            }
+            setIsLoadingWinners(false);
+        };
+        loadWinners();
+    }, []);
+
+    // Load saved products when tab changes
+    const handleTabChange = async (tab: TabType) => {
+        setActiveTab(tab);
+        if (tab === 'saved') {
+            startTransition(async () => {
+                const result = await getSavedProducts();
+                if (result.products) {
+                    setSavedProductsList(result.products as ProductWithScore[]);
+                }
+            });
+        }
+    };
 
     const handleSearch = async (e?: React.FormEvent) => {
         e?.preventDefault();
@@ -93,6 +125,13 @@ export default function SourcingClient({ initialProducts }: SourcingClientProps)
     const winnerCount = products.filter(p => p.quickScore >= 80).length;
     const potentialCount = products.filter(p => p.quickScore >= 60 && p.quickScore < 80).length;
 
+    // Get current products based on tab
+    const currentProducts = activeTab === 'winners'
+        ? winnersProducts
+        : activeTab === 'saved'
+            ? savedProductsList
+            : filteredProducts;
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -109,12 +148,52 @@ export default function SourcingClient({ initialProducts }: SourcingClientProps)
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-green-400 text-sm font-medium">{winnerCount} Winners</span>
+                        <span className="text-green-400 text-sm font-medium">{winnersProducts.length} Winners</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
                         <span className="text-blue-400 text-sm font-medium">{potentialCount} Potentiels</span>
                     </div>
                 </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex gap-2 border-b border-slate-800 pb-4">
+                <button
+                    onClick={() => handleTabChange('winners')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'winners'
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-orange-500/25'
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                >
+                    <Trophy size={18} />
+                    Winners du Jour
+                    {winnersProducts.length > 0 && (
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{winnersProducts.length}</span>
+                    )}
+                </button>
+                <button
+                    onClick={() => handleTabChange('search')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'search'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                >
+                    <Search size={18} />
+                    Rechercher
+                </button>
+                <button
+                    onClick={() => handleTabChange('saved')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'saved'
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25'
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                >
+                    <Bookmark size={18} />
+                    Sauvegardés
+                    {savedProductsList.length > 0 && (
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{savedProductsList.length}</span>
+                    )}
+                </button>
             </div>
 
             {/* Search Bar */}
@@ -159,8 +238,8 @@ export default function SourcingClient({ initialProducts }: SourcingClientProps)
                                         key={filter.value}
                                         onClick={() => setMinScore(filter.value)}
                                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${minScore === filter.value
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                             }`}
                                     >
                                         {filter.label}
@@ -214,8 +293,8 @@ export default function SourcingClient({ initialProducts }: SourcingClientProps)
                         key={niche}
                         onClick={() => handleNicheClick(niche)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedNiche === niche
-                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
                             }`}
                     >
                         {niche}
@@ -272,29 +351,50 @@ export default function SourcingClient({ initialProducts }: SourcingClientProps)
             </div>
 
             {/* Products Grid */}
-            {isPending || isSearching ? (
+            {(isPending || isSearching || (activeTab === 'winners' && isLoadingWinners)) ? (
                 <div className="flex items-center justify-center py-20">
                     <div className="text-center">
                         <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-                        <p className="text-slate-400">Analyse des produits en cours...</p>
+                        <p className="text-slate-400">
+                            {activeTab === 'winners' ? '🏆 Chargement des Winners du jour...' : 'Analyse des produits en cours...'}
+                        </p>
                     </div>
                 </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : currentProducts.length === 0 ? (
                 <div className="text-center py-20">
                     <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Aucun produit trouvé</h3>
-                    <p className="text-slate-400">Essayez de modifier vos filtres ou votre recherche</p>
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                        {activeTab === 'saved' ? 'Aucun produit sauvegardé' : 'Aucun produit trouvé'}
+                    </h3>
+                    <p className="text-slate-400">
+                        {activeTab === 'saved'
+                            ? 'Sauvegardez des produits pour les retrouver ici'
+                            : 'Essayez de modifier vos filtres ou votre recherche'}
+                    </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredProducts.map(product => (
-                        <ProductCard
-                            key={product.id}
-                            product={product}
-                            onClick={() => setSelectedProduct(product)}
-                        />
-                    ))}
-                </div>
+                <>
+                    {activeTab === 'winners' && (
+                        <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20">
+                            <div className="flex items-center gap-2">
+                                <Trophy className="text-yellow-400" size={20} />
+                                <span className="text-yellow-400 font-medium">Winners du Jour</span>
+                            </div>
+                            <p className="text-slate-400 text-sm mt-1">
+                                Ces produits ont un score IA de 80+ et sont sélectionnés parmi les tendances actuelles
+                            </p>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {currentProducts.map(product => (
+                            <ProductCard
+                                key={product.id}
+                                product={product}
+                                onClick={() => setSelectedProduct(product)}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
 
             {/* Product Detail Modal */}

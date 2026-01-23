@@ -55,8 +55,9 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-600/30 selection:text-blue-400`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-600/30 selection:text-blue-400 relative`}
       >
+        <div className="fixed inset-0 pointer-events-none z-0 bg-grid-pattern" />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider
             attribute="class"

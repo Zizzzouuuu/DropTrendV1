@@ -1,39 +1,54 @@
 /**
  * AI Product Analyzer
  * 
- * Analyzes products and provides winning potential scores based on multiple factors.
- * Uses a rule-based scoring system optimized for dropshipping criteria.
+ * Uses OpenAI GPT-4o-mini to analyze products and determine their winning potential.
+ * Provides trend scores, pricing recommendations, and marketing angles.
  */
 
-import { AliExpressSearchResult, detectNiche } from '@/lib/aliexpress/aliexpress';
+import { AliExpressProduct } from '@/lib/api/aliexpress';
 
+export interface AIProductAnalysis {
+    // Core Scores
+    trendScore: number; // 0-100
+    status: 'winner' | 'potential' | 'risky';
+
+    // Pricing Analysis
+    suggestedPrice: number;
+    profitPerUnit: number;
+    profitMargin: number;
+
+    // Marketing Insights
+    marketingAngles: string[];
+    targetAudience: string;
+    targetDemographic: {
+        ageRange: string;
+        gender: string;
+        interests: string[];
+    };
+
+    // Additional Insights
+    trendReason: string;
+    competitionLevel: 'low' | 'medium' | 'high';
+    viralPotential: 'low' | 'medium' | 'high';
+}
+
+// Legacy interface for backward compatibility with existing code
 export interface ProductAnalysis {
-    // Scores (0-100)
     overallScore: number;
     profitabilityScore: number;
     trendScore: number;
     competitionScore: number;
-
-    // Classification
     winnerStatus: 'winner' | 'potential' | 'risky' | 'rejected';
-
-    // Financial Analysis
     suggestedPrice: number;
     profitMargin: number;
     profitPerUnit: number;
-
-    // Marketing Insights
     niche: string;
     targetAudience: string;
     marketingAngle: string;
     marketingAngles: string[];
     adHooks: string[];
-
-    // Competition Analysis
     competitionLevel: 'low' | 'medium' | 'high';
     competitors: string[];
-
-    // Factors
     factors: {
         name: string;
         score: number;
@@ -42,168 +57,404 @@ export interface ProductAnalysis {
     }[];
 }
 
+export interface AnalyzedProduct extends AliExpressProduct {
+    analysis: AIProductAnalysis;
+}
 
-// Scoring weights
-const WEIGHTS = {
-    profitMargin: 0.25,
-    orderVolume: 0.20,
-    rating: 0.10,
-    pricePoint: 0.15,
-    wowFactor: 0.15,
-    nichePotential: 0.15
-};
+/**
+ * Analyze a single product using GPT-4o-mini
+ */
+export async function analyzeProductWithAI(product: AliExpressProduct): Promise<AIProductAnalysis> {
+    // Default fallback analysis
+    const defaultAnalysis = createFallbackAnalysis(product);
 
-// Niche-specific multipliers and audiences
-const NICHE_DATA: Record<string, { multiplier: number; audience: string; adAngles: string[] }> = {
-    "Tech & Gadgets": {
-        multiplier: 1.1,
-        audience: "Tech enthusiasts, young professionals, early adopters",
-        adAngles: ["Problem solver", "Time saver", "Must-have gadget"]
-    },
-    "Health & Wellness": {
-        multiplier: 1.2,
-        audience: "Health-conscious individuals, office workers, seniors",
-        adAngles: ["Pain relief", "Better posture", "Wellness upgrade"]
-    },
-    "Home & Living": {
-        multiplier: 1.15,
-        audience: "Homeowners, apartment dwellers, interior design enthusiasts",
-        adAngles: ["Home upgrade", "Cozy vibes", "Modern living"]
-    },
-    "Kitchen": {
-        multiplier: 1.1,
-        audience: "Home cooks, health enthusiasts, busy parents",
-        adAngles: ["Kitchen hack", "Healthy lifestyle", "Time saver"]
-    },
-    "Beauty": {
-        multiplier: 1.25,
-        audience: "Women 18-45, beauty enthusiasts, skincare lovers",
-        adAngles: ["Self-care routine", "Spa at home", "Beauty secret"]
-    },
-    "Pets": {
-        multiplier: 1.3,
-        audience: "Pet owners, dog/cat lovers, new pet parents",
-        adAngles: ["Happy pet", "Pet parent must-have", "Fur baby approved"]
-    },
-    "Fitness": {
-        multiplier: 1.1,
-        audience: "Fitness enthusiasts, gym goers, athletes",
-        adAngles: ["Level up workout", "Home gym essential", "Fitness hack"]
-    },
-    "Fashion": {
-        multiplier: 1.0,
-        audience: "Fashion-conscious shoppers, trend followers",
-        adAngles: ["Trending now", "Style upgrade", "Affordable luxury"]
-    },
-    "General": {
-        multiplier: 1.0,
-        audience: "General consumers, impulse buyers",
-        adAngles: ["Must-have item", "Viral product", "Limited stock"]
+    if (!process.env.OPENAI_API_KEY) {
+        console.warn('OPENAI_API_KEY not configured, using fallback analysis');
+        return defaultAnalysis;
     }
-};
 
-/**
- * Analyze a product and return comprehensive scoring
- */
-/**
- * Analyze a product and return comprehensive scoring using OpenAI GPT-4o-mini
- */
-export async function analyzeProduct(product: AliExpressSearchResult): Promise<ProductAnalysis> {
-    const niche = detectNiche(product.name);
-    const nicheData = NICHE_DATA[niche] || NICHE_DATA["General"];
-
-    // Default values if AI fails
-    let aiData = {
-        trendScore: 50,
-        marketingAngles: nicheData.adAngles,
-        targetAudience: nicheData.audience
-    };
-
-    // Real AI Analysis
     try {
-        if (process.env.OPENAI_API_KEY) {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o-mini",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are an expert dropshipping product researcher. Analyze the product and return a valid JSON object."
-                        },
-                        {
-                            role: "user",
-                            content: `Analyze this product:
-Title: "${product.name}"
-Price: ${product.price}
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `Tu es un expert en Dropshipping avec 10 ans d'expérience. Tu analyses des produits pour déterminer leur potentiel de vente.
 
-Return a JSON object with strictly these fields (all values in French):
-- trendScore: number (0-100), prediction of viral potential
-- marketingAngles: string[] (array of 3 short, punchy marketing hooks/angles)
-- targetAudience: string (concise description of the ideal customer persona)
+Pour chaque produit, tu dois fournir une analyse complète en JSON avec:
+- trendScore: Score de tendance de 0 à 100 (80+ = Winner, 60-79 = Potentiel, <60 = Risqué)
+- suggestedPrice: Prix de vente conseillé (généralement marge x3 du prix fournisseur)
+- marketingAngles: Les 3 meilleurs angles marketing en français (max 15 mots chacun)
+- targetAudience: Description de la cible en une phrase
+- targetDemographic: { ageRange: "18-35", gender: "mixte/homme/femme", interests: ["intérêt1", "intérêt2"] }
+- trendReason: Pourquoi ce score de tendance (1 phrase)
+- competitionLevel: "low", "medium" ou "high"
+- viralPotential: "low", "medium" ou "high"
 
-Output ONLY valid JSON.`
-                        }
-                    ],
-                    response_format: { type: "json_object" }
-                })
-            });
+Réponds UNIQUEMENT en JSON valide, sans markdown.`
+                    },
+                    {
+                        role: 'user',
+                        content: `Analyse ce produit :
+Titre: "${product.title}"
+Prix fournisseur: ${product.price}€
+Ventes: ${product.sales} ventes
+Note: ${product.rating}/5 (${product.reviews} avis)
+Catégorie: ${product.category || 'Général'}
 
-            if (response.ok) {
-                const data = await response.json();
-                const content = JSON.parse(data.choices[0].message.content);
-                if (content.trendScore) aiData.trendScore = content.trendScore;
-                if (content.marketingAngles) aiData.marketingAngles = content.marketingAngles;
-                if (content.targetAudience) aiData.targetAudience = content.targetAudience;
-            } else {
-                console.error("OpenAI API Error:", await response.text());
-            }
+Donne ton analyse complète.`
+                    }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 600,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            console.error('OpenAI API Error:', await response.text());
+            return defaultAnalysis;
         }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content;
+
+        if (!content) {
+            return defaultAnalysis;
+        }
+
+        const aiResult = JSON.parse(content);
+
+        // Calculate derived values
+        const trendScore = Math.min(100, Math.max(0, aiResult.trendScore || 50));
+        const suggestedPrice = aiResult.suggestedPrice || product.price * 3;
+        const profitPerUnit = suggestedPrice - product.price;
+        const profitMargin = Math.round((profitPerUnit / suggestedPrice) * 100);
+
+        // Determine status based on score
+        let status: 'winner' | 'potential' | 'risky';
+        if (trendScore >= 80) status = 'winner';
+        else if (trendScore >= 60) status = 'potential';
+        else status = 'risky';
+
+        return {
+            trendScore,
+            status,
+            suggestedPrice,
+            profitPerUnit,
+            profitMargin,
+            marketingAngles: aiResult.marketingAngles || defaultAnalysis.marketingAngles,
+            targetAudience: aiResult.targetAudience || defaultAnalysis.targetAudience,
+            targetDemographic: aiResult.targetDemographic || defaultAnalysis.targetDemographic,
+            trendReason: aiResult.trendReason || defaultAnalysis.trendReason,
+            competitionLevel: aiResult.competitionLevel || 'medium',
+            viralPotential: aiResult.viralPotential || 'medium'
+        };
+
     } catch (error) {
-        console.error("AI Analysis Failed:", error);
+        console.error('AI Analysis Error:', error);
+        return defaultAnalysis;
+    }
+}
+
+/**
+ * Batch analyze multiple products
+ */
+export async function analyzeProductsBatch(
+    products: AliExpressProduct[],
+    onProgress?: (current: number, total: number) => void
+): Promise<AnalyzedProduct[]> {
+    const analyzedProducts: AnalyzedProduct[] = [];
+    const total = products.length;
+
+    for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+
+        try {
+            const analysis = await analyzeProductWithAI(product);
+            analyzedProducts.push({ ...product, analysis });
+        } catch (error) {
+            console.error(`Error analyzing product ${product.id}:`, error);
+            analyzedProducts.push({
+                ...product,
+                analysis: createFallbackAnalysis(product)
+            });
+        }
+
+        // Report progress
+        if (onProgress) {
+            onProgress(i + 1, total);
+        }
+
+        // Rate limiting: wait 200ms between requests to avoid hitting limits
+        if (i < products.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
     }
 
-    // Mathematical calculations (Reliable logic)
-    const profitabilityScore = calculateProfitabilityScore(product);
-    const trendScore = aiData.trendScore; // Use AI trend score
-    const competitionScore = calculateCompetitionScore(product);
-    const wowScore = calculateWowFactorScore(product);
-    const nicheScore = Math.round(70 + nicheData.multiplier * 20);
+    // Sort by trend score descending
+    analyzedProducts.sort((a, b) => b.analysis.trendScore - a.analysis.trendScore);
 
-    // Calculate weighted overall score
+    return analyzedProducts;
+}
+
+/**
+ * Quick batch analyze using a single API call (more efficient for many products)
+ */
+export async function quickBatchAnalyze(
+    products: AliExpressProduct[]
+): Promise<AnalyzedProduct[]> {
+    if (!process.env.OPENAI_API_KEY || products.length === 0) {
+        return products.map(p => ({ ...p, analysis: createFallbackAnalysis(p) }));
+    }
+
+    try {
+        // Prepare product summaries
+        const productList = products.slice(0, 15).map((p, i) =>
+            `${i + 1}. "${p.title}" - ${p.price}€, ${p.sales} ventes, ${p.rating}/5`
+        ).join('\n');
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `Tu es un expert Dropshipping. Analyse ces produits et donne un score de tendance (0-100) + une raison courte pour chacun.
+
+Score 80+ = Winner (fort potentiel viral)
+Score 60-79 = Potentiel (peut marcher avec bonne stratégie)
+Score <60 = Risqué
+
+Réponds en JSON: { "analyses": [{ "index": 1, "score": 85, "reason": "...", "angles": ["angle1", "angle2", "angle3"], "audience": "..." }, ...] }`
+                    },
+                    {
+                        role: 'user',
+                        content: `Voici les produits:\n\n${productList}\n\nAnalyse chacun.`
+                    }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 1500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('OpenAI API Error');
+        }
+
+        const data = await response.json();
+        const content = JSON.parse(data.choices[0].message.content);
+        const analyses = content.analyses || [];
+
+        // Map analyses back to products
+        return products.map((product, index) => {
+            const aiAnalysis = analyses.find((a: any) => a.index === index + 1);
+
+            if (aiAnalysis) {
+                const trendScore = Math.min(100, Math.max(0, aiAnalysis.score || 50));
+                const suggestedPrice = product.price * 3;
+                const profitPerUnit = suggestedPrice - product.price;
+                const profitMargin = Math.round((profitPerUnit / suggestedPrice) * 100);
+
+                let status: 'winner' | 'potential' | 'risky';
+                if (trendScore >= 80) status = 'winner';
+                else if (trendScore >= 60) status = 'potential';
+                else status = 'risky';
+
+                return {
+                    ...product,
+                    analysis: {
+                        trendScore,
+                        status,
+                        suggestedPrice,
+                        profitPerUnit,
+                        profitMargin,
+                        marketingAngles: aiAnalysis.angles || createDefaultAngles(product),
+                        targetAudience: aiAnalysis.audience || 'Consommateurs en ligne',
+                        targetDemographic: {
+                            ageRange: '18-45',
+                            gender: 'mixte',
+                            interests: ['shopping en ligne', 'nouveautés']
+                        },
+                        trendReason: aiAnalysis.reason || 'Produit tendance',
+                        competitionLevel: 'medium' as const,
+                        viralPotential: trendScore >= 80 ? 'high' as const : 'medium' as const
+                    }
+                };
+            }
+
+            return { ...product, analysis: createFallbackAnalysis(product) };
+        });
+
+    } catch (error) {
+        console.error('Quick Batch Analyze Error:', error);
+        return products.map(p => ({ ...p, analysis: createFallbackAnalysis(p) }));
+    }
+}
+
+/**
+ * Create a fallback analysis based on product metrics
+ */
+function createFallbackAnalysis(product: AliExpressProduct): AIProductAnalysis {
+    // Calculate trend score based on metrics
+    let trendScore = 50;
+
+    // Boost for high sales
+    if (product.sales >= 10000) trendScore += 20;
+    else if (product.sales >= 5000) trendScore += 15;
+    else if (product.sales >= 1000) trendScore += 10;
+
+    // Boost for high rating
+    if (product.rating >= 4.8) trendScore += 15;
+    else if (product.rating >= 4.5) trendScore += 10;
+    else if (product.rating >= 4.0) trendScore += 5;
+
+    // Boost for good price point (sweet spot $5-$25)
+    if (product.price >= 5 && product.price <= 25) trendScore += 10;
+
+    // Cap at 100
+    trendScore = Math.min(100, trendScore);
+
+    const suggestedPrice = product.price * 3;
+    const profitPerUnit = suggestedPrice - product.price;
+    const profitMargin = Math.round((profitPerUnit / suggestedPrice) * 100);
+
+    let status: 'winner' | 'potential' | 'risky';
+    if (trendScore >= 80) status = 'winner';
+    else if (trendScore >= 60) status = 'potential';
+    else status = 'risky';
+
+    return {
+        trendScore,
+        status,
+        suggestedPrice,
+        profitPerUnit,
+        profitMargin,
+        marketingAngles: createDefaultAngles(product),
+        targetAudience: 'Acheteurs en ligne recherchant des produits innovants',
+        targetDemographic: {
+            ageRange: '18-45',
+            gender: 'mixte',
+            interests: ['shopping en ligne', 'produits tendance', 'bonnes affaires']
+        },
+        trendReason: `${product.sales}+ ventes et note de ${product.rating}/5`,
+        competitionLevel: product.sales > 20000 ? 'high' : product.sales > 5000 ? 'medium' : 'low',
+        viralPotential: trendScore >= 80 ? 'high' : trendScore >= 60 ? 'medium' : 'low'
+    };
+}
+
+/**
+ * Create default marketing angles based on product title
+ */
+function createDefaultAngles(product: AliExpressProduct): string[] {
+    const title = product.title.toLowerCase();
+    const angles: string[] = [];
+
+    if (title.includes('led') || title.includes('light')) {
+        angles.push('Transformez votre espace avec cet éclairage unique');
+    }
+    if (title.includes('smart') || title.includes('wireless')) {
+        angles.push('La technologie qui simplifie votre quotidien');
+    }
+    if (title.includes('portable') || title.includes('mini')) {
+        angles.push('Compact et pratique, emportez-le partout');
+    }
+
+    // Fill with generic angles if needed
+    while (angles.length < 3) {
+        const genericAngles = [
+            'Le produit viral que tout le monde veut',
+            'Qualité premium à prix accessible',
+            'La solution que vous cherchiez enfin disponible'
+        ];
+        angles.push(genericAngles[angles.length]);
+    }
+
+    return angles.slice(0, 3);
+}
+
+// ============================================
+// LEGACY FUNCTIONS FOR BACKWARD COMPATIBILITY
+// ============================================
+
+// Legacy type for AliExpressSearchResult compatibility
+interface LegacyProduct {
+    id: string;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    orders: number;
+    rating?: number;
+    shippingInfo?: string;
+    imageUrl: string;
+    productUrl: string;
+    supplier?: string;
+    description?: string;
+    images?: string[];
+    category?: string;
+}
+
+/**
+ * Legacy function: Quick score calculation
+ */
+export function quickScore(product: LegacyProduct): number {
+    let score = 50;
+
+    // Boost for high sales
+    if (product.orders >= 10000) score += 20;
+    else if (product.orders >= 5000) score += 15;
+    else if (product.orders >= 1000) score += 10;
+
+    // Boost for high rating
+    if (product.rating && product.rating >= 4.8) score += 15;
+    else if (product.rating && product.rating >= 4.5) score += 10;
+    else if (product.rating && product.rating >= 4.0) score += 5;
+
+    // Boost for good price point
+    if (product.price >= 5 && product.price <= 25) score += 10;
+
+    return Math.min(100, score);
+}
+
+/**
+ * Legacy function: Analyze product (for backward compatibility)
+ */
+export async function analyzeProduct(product: LegacyProduct): Promise<ProductAnalysis> {
+    const niche = detectNiche(product.name);
+    const trendScore = quickScore(product);
+    const profitabilityScore = calculateProfitabilityScore(product.price);
+    const competitionScore = calculateCompetitionScore(product.orders);
+
     const overallScore = Math.round(
-        profitabilityScore * WEIGHTS.profitMargin +
-        trendScore * WEIGHTS.orderVolume + // Use AI trend score weight
-        (product.rating ? product.rating * 20 : 80) * WEIGHTS.rating +
-        calculatePricePointScore(product) * WEIGHTS.pricePoint +
-        wowScore * WEIGHTS.wowFactor +
-        nicheScore * WEIGHTS.nichePotential
+        profitabilityScore * 0.25 +
+        trendScore * 0.30 +
+        (product.rating ? product.rating * 20 : 80) * 0.15 +
+        calculatePricePointScore(product.price) * 0.15 +
+        competitionScore * 0.15
     );
 
-    // Determine winner status
     let winnerStatus: 'winner' | 'potential' | 'risky' | 'rejected';
     if (overallScore >= 80) winnerStatus = 'winner';
     else if (overallScore >= 60) winnerStatus = 'potential';
     else if (overallScore >= 40) winnerStatus = 'risky';
     else winnerStatus = 'rejected';
 
-    // Financials
     const markupMultiplier = 2.5 + (overallScore / 100) * 1.5;
     const suggestedPrice = Math.round(product.price * markupMultiplier * 100) / 100;
     const profitPerUnit = suggestedPrice - product.price;
     const profitMargin = Math.round((profitPerUnit / suggestedPrice) * 100);
-
-    const competitionLevel = competitionScore >= 70 ? 'low' : competitionScore >= 40 ? 'medium' : 'high';
-
-    // Generate factors
-    const factors = generateFactors(product, profitabilityScore, trendScore, competitionScore, wowScore);
-
-    // Generate ad hooks (mix of AI and template)
-    const adHooks = generateAdHooks(product, nicheData);
 
     return {
         overallScore,
@@ -215,203 +466,84 @@ Output ONLY valid JSON.`
         profitMargin,
         profitPerUnit,
         niche,
-        targetAudience: aiData.targetAudience, // AI
-        marketingAngle: aiData.marketingAngles[0] || "Produit Tendance", // AI
-        marketingAngles: aiData.marketingAngles, // AI
-        adHooks,
-        competitionLevel,
-        competitors: ['AliExpress sellers', 'Amazon sellers'], // Could ask AI for this too but keep simple
-        factors
+        targetAudience: 'Acheteurs en ligne recherchant des produits innovants',
+        marketingAngle: 'Produit tendance avec fort potentiel viral',
+        marketingAngles: [
+            'Le produit viral que tout le monde veut',
+            'Qualité premium à prix accessible',
+            'La solution que vous cherchiez'
+        ],
+        adHooks: [
+            `\"Je ne savais pas que j'en avais besoin...\"`,
+            `\"${product.orders.toLocaleString()}+ personnes ne peuvent pas se tromper\"`,
+            `\"Seulement ${suggestedPrice.toFixed(2)}€ pour résoudre ce problème\"`
+        ],
+        competitionLevel: competitionScore >= 70 ? 'low' : competitionScore >= 40 ? 'medium' : 'high',
+        competitors: ['AliExpress sellers', 'Amazon sellers'],
+        factors: [
+            {
+                name: 'Marge de profit',
+                score: profitabilityScore,
+                description: product.price <= 10 ? 'Excellent coût d\'achat' : 'Coût modéré',
+                positive: profitabilityScore >= 70
+            },
+            {
+                name: 'Tendance',
+                score: trendScore,
+                description: `${product.orders.toLocaleString()} commandes`,
+                positive: trendScore >= 65
+            },
+            {
+                name: 'Concurrence',
+                score: competitionScore,
+                description: competitionScore >= 70 ? 'Marché peu saturé' : 'Marché compétitif',
+                positive: competitionScore >= 55
+            }
+        ]
     };
 }
 
-function calculateProfitabilityScore(product: AliExpressSearchResult): number {
-    // Low cost products with high perceived value score better
-    const baseCost = product.price;
+function detectNiche(productName: string): string {
+    const niches: Record<string, string[]> = {
+        'Tech & Gadgets': ['phone', 'wireless', 'bluetooth', 'usb', 'led', 'smart', 'charger'],
+        'Health & Wellness': ['posture', 'massager', 'health', 'therapy'],
+        'Home & Living': ['humidifier', 'projector', 'light', 'home', 'decor'],
+        'Kitchen': ['blender', 'kitchen', 'cooking', 'food'],
+        'Beauty': ['beauty', 'skin', 'hair', 'massage'],
+        'Pets': ['pet', 'dog', 'cat', 'animal'],
+        'Fitness': ['fitness', 'exercise', 'gym', 'sport']
+    };
 
-    if (baseCost <= 5) return 95;
-    if (baseCost <= 10) return 85;
-    if (baseCost <= 15) return 75;
-    if (baseCost <= 25) return 60;
-    if (baseCost <= 40) return 45;
+    const name = productName.toLowerCase();
+    for (const [niche, keywords] of Object.entries(niches)) {
+        if (keywords.some(kw => name.includes(kw))) {
+            return niche;
+        }
+    }
+    return 'General';
+}
+
+function calculateProfitabilityScore(price: number): number {
+    if (price <= 5) return 95;
+    if (price <= 10) return 85;
+    if (price <= 15) return 75;
+    if (price <= 25) return 60;
+    if (price <= 40) return 45;
     return 30;
 }
 
-function calculateTrendScore(product: AliExpressSearchResult): number {
-    // Based on order volume
-    const orders = product.orders;
-
-    if (orders >= 50000) return 95;
-    if (orders >= 20000) return 85;
-    if (orders >= 10000) return 75;
-    if (orders >= 5000) return 65;
-    if (orders >= 1000) return 55;
-    return 40;
-}
-
-function calculateCompetitionScore(product: AliExpressSearchResult): number {
-    // Inverse of order volume - very popular = more competition
-    // But also consider price - unique price points may have less competition
-    const orders = product.orders;
-
-    if (orders < 5000) return 85;  // Less known = less competition
+function calculateCompetitionScore(orders: number): number {
+    if (orders < 5000) return 85;
     if (orders < 15000) return 70;
     if (orders < 30000) return 55;
     if (orders < 50000) return 40;
-    return 25; // Very popular = high competition
+    return 25;
 }
 
-function calculatePricePointScore(product: AliExpressSearchResult): number {
-    // Sweet spot for dropshipping is $20-60 selling price
-    const estimatedSellingPrice = product.price * 3;
-
+function calculatePricePointScore(price: number): number {
+    const estimatedSellingPrice = price * 3;
     if (estimatedSellingPrice >= 20 && estimatedSellingPrice <= 60) return 90;
     if (estimatedSellingPrice >= 15 && estimatedSellingPrice <= 80) return 75;
-    if (estimatedSellingPrice < 15) return 50; // Too cheap, low perceived value
-    return 40; // Too expensive for impulse buy
-}
-
-function calculateWowFactorScore(product: AliExpressSearchResult): number {
-    // Based on product name keywords that indicate uniqueness
-    const wowKeywords = ['smart', 'led', 'magnetic', 'automatic', 'portable', 'wireless',
-        'foldable', 'rechargeable', '360', 'mini', 'anti-gravity', 'galaxy'];
-    const name = product.name.toLowerCase();
-
-    let matches = 0;
-    for (const keyword of wowKeywords) {
-        if (name.includes(keyword)) matches++;
-    }
-
-    return Math.min(95, 50 + matches * 15);
-}
-
-function generateFactors(
-    product: AliExpressSearchResult,
-    profitabilityScore: number,
-    trendScore: number,
-    competitionScore: number,
-    wowScore: number
-): ProductAnalysis['factors'] {
-    const factors: ProductAnalysis['factors'] = [];
-
-    // Profitability factor
-    factors.push({
-        name: "Marge de profit",
-        score: profitabilityScore,
-        description: product.price <= 10
-            ? "Excellent coût d'achat permettant une marge élevée"
-            : "Coût d'achat modéré, marge correcte",
-        positive: profitabilityScore >= 70
-    });
-
-    // Trend factor
-    factors.push({
-        name: "Tendance du marché",
-        score: trendScore,
-        description: product.orders >= 20000
-            ? `${product.orders.toLocaleString()} commandes - Forte demande prouvée`
-            : `${product.orders.toLocaleString()} commandes - Demande en croissance`,
-        positive: trendScore >= 65
-    });
-
-    // Competition factor
-    factors.push({
-        name: "Niveau de concurrence",
-        score: competitionScore,
-        description: competitionScore >= 70
-            ? "Marché peu saturé, opportunité de différenciation"
-            : "Marché compétitif, nécessite une bonne stratégie marketing",
-        positive: competitionScore >= 55
-    });
-
-    // Wow factor
-    factors.push({
-        name: "Facteur Wow",
-        score: wowScore,
-        description: wowScore >= 70
-            ? "Produit unique avec fort potentiel viral"
-            : "Produit standard, moins de potentiel viral",
-        positive: wowScore >= 65
-    });
-
-    // Rating factor
-    if (product.rating) {
-        const ratingScore = Math.round(product.rating * 20);
-        factors.push({
-            name: "Avis clients",
-            score: ratingScore,
-            description: `Note de ${product.rating}/5 - ${product.rating >= 4.5 ? 'Excellente satisfaction client' : 'Bonne satisfaction client'}`,
-            positive: product.rating >= 4.3
-        });
-    }
-
-    // Shipping factor
-    factors.push({
-        name: "Livraison",
-        score: product.shippingInfo?.includes("Free") ? 85 : 60,
-        description: product.shippingInfo?.includes("Free")
-            ? "Livraison gratuite disponible"
-            : "Frais de livraison à prévoir",
-        positive: product.shippingInfo?.includes("Free") ?? false
-    });
-
-    return factors;
-}
-
-function generateMarketingAngle(
-    product: AliExpressSearchResult,
-    nicheData: { multiplier: number; audience: string; adAngles: string[] }
-): string {
-    const angles = nicheData.adAngles;
-    const selectedAngle = angles[Math.floor(Math.random() * angles.length)];
-
-    const templates = [
-        `🎯 ${selectedAngle}: "${product.name.split(' ').slice(0, 4).join(' ')}" - Le produit que tout le monde veut!`,
-        `⚡ Découvrez le secret des top sellers: Ce ${product.name.split(' ').slice(0, 3).join(' ')} fait fureur sur TikTok!`,
-        `💡 ${selectedAngle} - Plus de ${product.orders.toLocaleString()} personnes l'ont déjà adopté!`,
-        `🔥 VIRAL: Ce produit résout un problème que 90% des gens ignorent!`
-    ];
-
-    return templates[Math.floor(Math.random() * templates.length)];
-}
-
-function generateAdHooks(
-    product: AliExpressSearchResult,
-    nicheData: { multiplier: number; audience: string; adAngles: string[] }
-): string[] {
-    const hooks = [
-        `"Je ne savais pas que j'en avais besoin jusqu'à ce que je l'essaie..."`,
-        `"Pourquoi personne ne m'a parlé de ça avant?!"`,
-        `"${product.orders.toLocaleString()}+ personnes ne peuvent pas se tromper"`,
-        `"Le produit qui a changé ma routine quotidienne"`,
-        `"Seulement ${((product.price * 3)).toFixed(2)}€ pour résoudre ce problème"`,
-        `"Stop scrolling - Tu vas vouloir voir ça!"`
-    ];
-
-    return hooks.sort(() => Math.random() - 0.5).slice(0, 3);
-}
-
-/**
- * Quick score calculation without full analysis
- */
-export function quickScore(product: AliExpressSearchResult): number {
-    const profitability = calculateProfitabilityScore(product);
-    const trend = calculateTrendScore(product);
-    const wow = calculateWowFactorScore(product);
-
-    return Math.round((profitability + trend + wow) / 3);
-}
-
-/**
- * Batch analyze multiple products
- */
-export async function batchAnalyze(products: AliExpressSearchResult[]): Promise<Map<string, ProductAnalysis>> {
-    const results = new Map<string, ProductAnalysis>();
-
-    for (const product of products) {
-        const analysis = await analyzeProduct(product);
-        results.set(product.id, analysis);
-    }
-
-    return results;
+    if (estimatedSellingPrice < 15) return 50;
+    return 40;
 }

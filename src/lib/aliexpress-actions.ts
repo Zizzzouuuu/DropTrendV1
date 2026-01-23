@@ -116,6 +116,201 @@ export async function getTrending(limit: number = 10): Promise<{
 }
 
 /**
+ * Get Winners of the Day - Products analyzed by AI (OpenAI GPT-4o-mini)
+ * Real AI analysis to determine winning products
+ */
+export async function getWinnersOfTheDay(): Promise<{
+    products: (ProductWithScore & { aiAnalysis?: string })[];
+    error?: string;
+}> {
+    try {
+        const session = await auth();
+        if (!session?.user?.email) {
+            return { products: [], error: "Non authentifié" };
+        }
+
+        // First, check if we have cached winners from today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const cachedWinners = await db.aliExpressProduct.findMany({
+            where: {
+                winnerStatus: 'winner',
+                analyzedAt: { gte: today }
+            },
+            orderBy: { aiScore: 'desc' },
+            take: 12
+        });
+
+        // If we have cached winners from today, return them
+        if (cachedWinners.length >= 6) {
+            const products: (ProductWithScore & { aiAnalysis?: string })[] = cachedWinners.map(p => ({
+                id: p.aliexpressId,
+                name: p.name,
+                price: p.price,
+                originalPrice: p.originalPrice || undefined,
+                imageUrl: p.imageUrl,
+                orders: p.orders,
+                rating: p.rating || undefined,
+                shippingInfo: p.shippingInfo || undefined,
+                productUrl: p.productUrl,
+                supplier: p.supplier || undefined,
+                quickScore: p.aiScore,
+                aiAnalysis: p.marketingAngle || undefined
+            }));
+            return { products };
+        }
+
+        // Fetch fresh products from multiple categories
+        const categories = ['gadgets', 'smart home', 'beauty tools', 'pet supplies', 'fitness equipment'];
+        const candidateProducts: AliExpressSearchResult[] = [];
+
+        for (const category of categories) {
+            try {
+                const results = await searchAliExpressProducts(category, {
+                    minOrders: 3000,
+                    limit: 6
+                });
+                candidateProducts.push(...results);
+            } catch (err) {
+                console.error(`Error fetching ${category}:`, err);
+            }
+        }
+
+        if (candidateProducts.length === 0) {
+            return { products: [], error: "Aucun produit trouvé" };
+        }
+
+        // Use AI to analyze and select the best winners
+        const analyzedProducts: (ProductWithScore & { aiAnalysis?: string })[] = [];
+
+        // Batch analyze with OpenAI - ask AI to pick the best winners
+        if (process.env.OPENAI_API_KEY) {
+            try {
+                // Prepare product summaries for AI
+                const productSummaries = candidateProducts.slice(0, 20).map((p, i) =>
+                    `${i + 1}. "${p.name}" - Prix: ${p.price}€, Commandes: ${p.orders}, Note: ${p.rating || 'N/A'}`
+                ).join('\n');
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `Tu es un expert en dropshipping. Analyse cette liste de produits et sélectionne les 8 meilleurs "Winners" (produits à fort potentiel de vente).
+
+Critères d'un Winner:
+- Résout un problème clair
+- Prix permettant une marge x3 minimum
+- Fort potentiel viral (TikTok, Instagram)
+- Pas trop de concurrence saturée
+- "Wow factor" élevé
+
+Retourne un JSON avec exactement ce format:
+{
+  "winners": [
+    {"index": 1, "score": 85, "reason": "Courte raison en français"},
+    ...
+  ]
+}
+Où "index" est le numéro du produit dans la liste, "score" est un score de 0-100, et "reason" est une courte explication.`
+                            },
+                            {
+                                role: 'user',
+                                content: `Voici les produits à analyser:\n\n${productSummaries}\n\nSélectionne les 8 meilleurs Winners.`
+                            }
+                        ],
+                        response_format: { type: 'json_object' },
+                        max_tokens: 1000,
+                        temperature: 0.7
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const aiResult = JSON.parse(data.choices[0].message.content);
+
+                    if (aiResult.winners && Array.isArray(aiResult.winners)) {
+                        for (const winner of aiResult.winners) {
+                            const productIndex = winner.index - 1;
+                            if (productIndex >= 0 && productIndex < candidateProducts.length) {
+                                const product = candidateProducts[productIndex];
+
+                                // Save to database with AI analysis
+                                try {
+                                    await db.aliExpressProduct.upsert({
+                                        where: { aliexpressId: product.id },
+                                        update: {
+                                            aiScore: winner.score,
+                                            winnerStatus: winner.score >= 80 ? 'winner' : 'potential',
+                                            marketingAngle: winner.reason,
+                                            analyzedAt: new Date()
+                                        },
+                                        create: {
+                                            aliexpressId: product.id,
+                                            name: product.name,
+                                            description: product.name, // Use name as fallback since AliExpressSearchResult doesn't have description
+                                            price: product.price,
+                                            originalPrice: product.originalPrice,
+                                            rating: product.rating,
+                                            orders: product.orders,
+                                            imageUrl: product.imageUrl,
+                                            productUrl: product.productUrl,
+                                            aiScore: winner.score,
+                                            winnerStatus: winner.score >= 80 ? 'winner' : 'potential',
+                                            marketingAngle: winner.reason,
+                                            analyzedAt: new Date()
+                                        }
+                                    });
+                                } catch (dbError) {
+                                    console.error('DB save error:', dbError);
+                                }
+
+                                analyzedProducts.push({
+                                    ...product,
+                                    quickScore: winner.score,
+                                    aiAnalysis: winner.reason
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (aiError) {
+                console.error('AI Analysis error:', aiError);
+            }
+        }
+
+        // Fallback to mathematical scoring if AI fails
+        if (analyzedProducts.length === 0) {
+            for (const product of candidateProducts.slice(0, 12)) {
+                const analysis = await analyzeProduct(product);
+                if (analysis.winnerStatus === 'winner' || analysis.winnerStatus === 'potential') {
+                    analyzedProducts.push({
+                        ...product,
+                        quickScore: analysis.overallScore,
+                        aiAnalysis: analysis.marketingAngle
+                    });
+                }
+            }
+        }
+
+        // Sort by score and return top winners
+        analyzedProducts.sort((a, b) => b.quickScore - a.quickScore);
+
+        return { products: analyzedProducts.slice(0, 12) };
+    } catch (error) {
+        console.error("Winners error:", error);
+        return { products: [], error: "Erreur lors de la récupération des winners" };
+    }
+}
+
+/**
  * Get full AI analysis for a product
  */
 export async function getProductAnalysis(productId: string): Promise<{

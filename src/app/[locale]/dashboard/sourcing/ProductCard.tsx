@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { Star, ShoppingCart, Bookmark, BookmarkCheck, Sparkles, TrendingUp } from 'lucide-react';
+import { Star, ShoppingCart, Bookmark, BookmarkCheck, Sparkles, TrendingUp, Bot } from 'lucide-react';
 import { ProductWithScore, toggleSaveProduct } from '@/lib/aliexpress-actions';
 
 interface ProductCardProps {
-    product: ProductWithScore;
+    product: ProductWithScore & { aiAnalysis?: string };
     onClick: () => void;
 }
 
@@ -95,10 +95,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                 {/* Status Tag */}
                 <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${product.quickScore >= 80
-                            ? 'bg-green-500/10 text-green-400'
-                            : product.quickScore >= 60
-                                ? 'bg-blue-500/10 text-blue-400'
-                                : 'bg-yellow-500/10 text-yellow-400'
+                        ? 'bg-green-500/10 text-green-400'
+                        : product.quickScore >= 60
+                            ? 'bg-blue-500/10 text-blue-400'
+                            : 'bg-yellow-500/10 text-yellow-400'
                         }`}>
                         {getScoreLabel(product.quickScore)}
                     </span>
@@ -111,9 +111,19 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-white font-medium text-sm line-clamp-2 mb-3 group-hover:text-blue-400 transition-colors">
+                <h3 className="text-white font-medium text-sm line-clamp-2 mb-2 group-hover:text-blue-400 transition-colors">
                     {product.name}
                 </h3>
+
+                {/* AI Analysis Badge */}
+                {product.aiAnalysis && (
+                    <div className="mb-3 p-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20">
+                        <div className="flex items-start gap-2">
+                            <Bot size={14} className="text-purple-400 shrink-0 mt-0.5" />
+                            <p className="text-xs text-purple-300 line-clamp-2">{product.aiAnalysis}</p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Pricing */}
                 <div className="flex items-end justify-between">

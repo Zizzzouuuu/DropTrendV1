@@ -8,9 +8,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = ({ children, variant = 'primary', size = 'md', className, ...props }: ButtonProps) => {
-  const base = "rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-sm cursor-pointer";
+  const base = "rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm cursor-pointer";
   const variants = {
-    primary: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95",
+    primary: "bg-[#008BFF] text-white shadow-[0_0_20px_rgba(0,139,255,0.4)] hover:shadow-[0_0_35px_rgba(0,139,255,0.6)] hover:scale-105 active:scale-95",
     secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95",
     outline: "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground active:scale-95",
     ghost: "hover:bg-accent hover:text-accent-foreground"

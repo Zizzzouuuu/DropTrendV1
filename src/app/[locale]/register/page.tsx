@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useActionState, useState } from 'react';
+import React, { useActionState, useState, useMemo } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { TrendingUp, ArrowLeft, AlertCircle } from 'lucide-react';
+import { TrendingUp, ArrowLeft, AlertCircle, Check, X } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { register } from '@/lib/actions';
 import 'react-phone-number-input/style.css';
@@ -19,9 +19,40 @@ function RegisterButton() {
     );
 }
 
+// Password validation rules
+interface PasswordRule {
+    label: string;
+    test: (password: string) => boolean;
+}
+
+const PASSWORD_RULES: PasswordRule[] = [
+    { label: 'Minimum 12 caractères', test: (p) => p.length >= 12 },
+    { label: 'Au moins une majuscule', test: (p) => /[A-Z]/.test(p) },
+    { label: 'Au moins un chiffre', test: (p) => /[0-9]/.test(p) },
+    { label: 'Au moins un caractère spécial', test: (p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+];
+
 export default function RegisterPage() {
     const [errorMessage, dispatch] = useActionState(register, undefined);
     const [phoneValue, setPhoneValue] = useState<string | undefined>();
+    const [password, setPassword] = useState('');
+
+    // Real-time password validation
+    const passwordChecks = useMemo(() => {
+        return PASSWORD_RULES.map(rule => ({
+            ...rule,
+            passed: rule.test(password)
+        }));
+    }, [password]);
+
+    const allRulesPassed = passwordChecks.every(check => check.passed);
+    const passedCount = passwordChecks.filter(check => check.passed).length;
+
+    // Calculate strength percentage
+    const strengthPercent = (passedCount / PASSWORD_RULES.length) * 100;
+    const strengthColor = strengthPercent === 100 ? 'bg-green-500' :
+        strengthPercent >= 75 ? 'bg-yellow-500' :
+            strengthPercent >= 50 ? 'bg-orange-500' : 'bg-red-500';
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0f1c] relative overflow-hidden font-sans">
@@ -29,7 +60,7 @@ export default function RegisterPage() {
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_-20%,_var(--tw-gradient-stops))] from-blue-600/10 via-[#0a0f1c] to-[#0a0f1c]"></div>
             <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/5 via-transparent to-transparent blur-3xl"></div>
 
-            <Card className="w-full max-w-md p-8 relative z-10 border border-slate-800/60 bg-slate-900/40 backdrop-blur-xl shadow-2xl shadow-blue-900/10">
+            <Card className="w-full max-w-md p-8 relative z-10 border border-[rgba(0,139,255,0.2)] bg-slate-900/40 backdrop-blur-xl shadow-2xl shadow-blue-900/10">
                 <div className="text-center mb-8">
                     <Link href="/" className="inline-flex items-center gap-2 mb-8 group cursor-pointer">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300">
@@ -47,7 +78,7 @@ export default function RegisterPage() {
                         <input
                             name="name"
                             type="text"
-                            className="w-full bg-slate-950/50 border border-slate-800/80 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
+                            className="w-full bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
                             placeholder="Jean Dupont"
                             required
                         />
@@ -63,7 +94,7 @@ export default function RegisterPage() {
                                 defaultCountry="FR"
                                 className="flex gap-2"
                                 numberInputProps={{
-                                    className: "w-full bg-slate-950/50 border border-slate-800/80 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
+                                    className: "w-full bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
                                 }}
                             />
                         </div>
@@ -76,7 +107,7 @@ export default function RegisterPage() {
                         <input
                             name="email"
                             type="email"
-                            className="w-full bg-slate-950/50 border border-slate-800/80 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
+                            className="w-full bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
                             placeholder="jean@exemple.com"
                             required
                         />
@@ -85,16 +116,53 @@ export default function RegisterPage() {
                     <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mot de passe</label>
-                            <span className="text-[10px] text-blue-400/80">12 char. min</span>
+                            <span className={`text-[10px] font-bold ${allRulesPassed ? 'text-green-400' : 'text-blue-400/80'}`}>
+                                {allRulesPassed ? '✓ Sécurisé' : `${passedCount}/${PASSWORD_RULES.length} critères`}
+                            </span>
                         </div>
                         <input
                             name="password"
                             type="password"
-                            className="w-full bg-slate-950/50 border border-slate-800/80 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className={`w-full bg-slate-950/50 border rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-1 transition-all text-sm placeholder:text-slate-600 ${password.length === 0 ? 'border-[rgba(0,139,255,0.2)] focus:border-blue-500/50 focus:ring-blue-500/50' :
+                                allRulesPassed ? 'border-green-500/50 focus:border-green-500/50 focus:ring-green-500/50' :
+                                    'border-orange-500/50 focus:border-orange-500/50 focus:ring-orange-500/50'
+                                }`}
                             placeholder="••••••••••••"
                             required
                             minLength={12}
                         />
+
+                        {/* Password Strength Bar */}
+                        {password.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full transition-all duration-300 ${strengthColor}`}
+                                        style={{ width: `${strengthPercent}%` }}
+                                    />
+                                </div>
+
+                                {/* Password Rules Checklist */}
+                                <div className="grid grid-cols-2 gap-1">
+                                    {passwordChecks.map((check, index) => (
+                                        <div
+                                            key={index}
+                                            className={`flex items-center gap-1.5 text-[10px] transition-colors ${check.passed ? 'text-green-400' : 'text-slate-500'
+                                                }`}
+                                        >
+                                            {check.passed ? (
+                                                <Check size={10} className="shrink-0" />
+                                            ) : (
+                                                <X size={10} className="shrink-0" />
+                                            )}
+                                            <span>{check.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div
@@ -113,7 +181,7 @@ export default function RegisterPage() {
                     <RegisterButton />
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-slate-800/60 text-center">
+                <div className="mt-8 pt-6 border-t border-[rgba(0,139,255,0.2)] text-center">
                     <p className="text-slate-500 text-xs mb-4">
                         Déjà membre ? <Link href="/login" className="text-white hover:text-blue-400 font-semibold transition-colors">Connexion</Link>
                     </p>

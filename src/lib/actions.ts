@@ -6,6 +6,47 @@ import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { redirect } from 'next/navigation';
 
+// ============================================
+// PASSWORD VALIDATION
+// ============================================
+
+interface PasswordValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Strict password validation rules:
+ * - Minimum 12 characters
+ * - At least one uppercase letter
+ * - At least one special character
+ * - At least one number
+ */
+function validatePassword(password: string): PasswordValidationResult {
+  const errors: string[] = [];
+
+  if (password.length < 12) {
+    errors.push('Minimum 12 caractères');
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Au moins une majuscule');
+  }
+
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push('Au moins un caractère spécial (!@#$%^&*...)');
+  }
+
+  if (!/[0-9]/.test(password)) {
+    errors.push('Au moins un chiffre');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
@@ -53,9 +94,10 @@ export async function register(
     return 'Tous les champs sont requis (Email, Mot de passe, Nom, Téléphone).';
   }
 
-  // Security Rule: Password must be at least 12 characters
-  if (password.length < 12) {
-    return 'Le mot de passe doit contenir au moins 12 caractères pour votre sécurité.';
+  // Security Rule: Strict Password Validation
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.valid) {
+    return `Mot de passe invalide: ${passwordValidation.errors.join(', ')}`;
   }
 
   try {

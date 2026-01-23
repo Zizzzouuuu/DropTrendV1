@@ -2,9 +2,9 @@
 
 import React, { useState, useTransition } from 'react';
 import {
-    Download, Eye, Star, Lock, Check, X, ExternalLink,
+    Eye, Star, Lock, Check, X, ExternalLink,
     Loader2, Palette, Layout, Code, ShoppingBag, Sparkles,
-    Filter, Crown
+    Filter, Crown, Upload, Store, AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -52,16 +52,18 @@ export default function TemplatesClient({ templates, isPro, isShopifyConnected }
     const proTemplates = templates.filter(t => t.isPro);
 
     const handleInstall = async (templateId: string) => {
+        if (!isShopifyConnected) {
+            // Show connection required message
+            alert('Connectez d\'abord votre boutique Shopify pour importer ce template directement.');
+            return;
+        }
+
         setIsInstalling(true);
         const result = await installTemplate(templateId);
         setIsInstalling(false);
 
         if (result.success) {
             setInstallSuccess(true);
-            if (result.downloadUrl) {
-                // Trigger download
-                window.open(result.downloadUrl, '_blank');
-            }
             setTimeout(() => setInstallSuccess(false), 3000);
         }
     };
@@ -263,11 +265,12 @@ export default function TemplatesClient({ templates, isPro, isShopifyConnected }
                                     <Eye size={16} className="mr-1" /> Détails
                                 </Button>
                                 <Button
-                                    variant="outline"
+                                    variant={isShopifyConnected ? "primary" : "outline"}
                                     onClick={() => handleInstall(template.id)}
-                                    disabled={template.isLocked}
+                                    disabled={template.isLocked || !isShopifyConnected}
+                                    title={!isShopifyConnected ? "Connectez Shopify d'abord" : "Importer vers Shopify"}
                                 >
-                                    <Download size={16} />
+                                    {isShopifyConnected ? <Upload size={16} /> : <Store size={16} />}
                                 </Button>
                             </div>
                         </div>
@@ -424,25 +427,36 @@ export default function TemplatesClient({ templates, isPro, isShopifyConnected }
                                                 </Link>
                                             ) : (
                                                 <>
+                                                    {!isShopifyConnected && (
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm">
+                                                            <AlertCircle size={16} />
+                                                            <span>Connectez Shopify pour importer directement</span>
+                                                        </div>
+                                                    )}
                                                     <Button
-                                                        className="w-full h-12"
+                                                        className={`w-full h-12 ${isShopifyConnected ? 'bg-gradient-to-r from-green-600 to-emerald-600' : 'bg-slate-700'}`}
                                                         onClick={() => handleInstall(selectedTemplate.id)}
-                                                        disabled={isInstalling}
+                                                        disabled={isInstalling || !isShopifyConnected}
                                                     >
                                                         {isInstalling ? (
                                                             <>
                                                                 <Loader2 size={18} className="mr-2 animate-spin" />
-                                                                Installation...
+                                                                Installation en cours...
                                                             </>
                                                         ) : installSuccess ? (
                                                             <>
                                                                 <Check size={18} className="mr-2" />
-                                                                Téléchargé!
+                                                                Importé avec succès!
+                                                            </>
+                                                        ) : isShopifyConnected ? (
+                                                            <>
+                                                                <Upload size={18} className="mr-2" />
+                                                                Importer vers Shopify
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Download size={18} className="mr-2" />
-                                                                {isShopifyConnected ? 'Installer sur Shopify' : 'Télécharger le template'}
+                                                                <Store size={18} className="mr-2" />
+                                                                Connectez Shopify d'abord
                                                             </>
                                                         )}
                                                     </Button>

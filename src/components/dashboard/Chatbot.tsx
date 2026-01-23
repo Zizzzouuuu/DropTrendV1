@@ -3,27 +3,32 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { MessageCircle, X, Send, Bot } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Sparkles, Loader2 } from 'lucide-react';
 
 type Message = {
     id: string;
-    text: string;
-    sender: 'user' | 'ai';
+    role: 'user' | 'assistant';
+    content: string;
     timestamp: Date;
 };
 
-const INITIAL_MESSAGES: Message[] = [
-    {
-        id: '1',
-        text: "Bonjour ! Je suis votre assistant DropTrend IA. Je peux vous aider à trouver des produits gagnants, analyser des boutiques ou rédiger des descriptions. Comment puis-je vous aider aujourd'hui ?",
-        sender: 'ai',
-        timestamp: new Date()
-    }
+const INITIAL_MESSAGE: Message = {
+    id: '1',
+    role: 'assistant',
+    content: "Bonjour ! 👋 Je suis votre assistant DropTrend IA. Je peux vous aider à:\n\n🏆 Trouver des produits gagnants\n📊 Analyser des niches\n🎯 Conseils marketing TikTok/Facebook\n💰 Optimiser vos marges\n\nComment puis-je vous aider ?",
+    timestamp: new Date()
+};
+
+const PREDEFINED_QUESTIONS = [
+    "🏆 Produit gagnant",
+    "📊 Analyser une niche",
+    "💡 Idées TikTok",
+    "💰 Calculer ma marge"
 ];
 
 export default function Chatbot({ userSubscription = 'free' }: { userSubscription?: string }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+    const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -36,42 +41,13 @@ export default function Chatbot({ userSubscription = 'free' }: { userSubscriptio
         scrollToBottom();
     }, [messages, isOpen]);
 
-    const PREDEFINED_QUESTIONS = [
-        "🏆 Trouver un produit gagnant",
-        "🛒 Analyser une boutique",
-        "📹 Idées de vidéos TikTok",
-        "📝 Rédiger une fiche produit"
-    ];
-
-    const generateResponse = (input: string): string => {
-        const lowerInput = input.toLowerCase();
-
-        // Intelligent Responses based on Subscription
-        if (lowerInput.includes('produit') || lowerInput.includes('winner')) {
-            if (userSubscription === 'free') {
-                return "J'ai détecté plusieurs produits potentiels dans la niche 'Maison' aujourd'hui. Note : En tant que membre Starter, vous avez accès à 3 winners par jour. Passez Pro pour voir les 20+ produits quotidiens et l'analyse complète.";
-            }
-            return "Voici le Top 3 du jour : 1. Correcteur de Posture (ROI 3.5), 2. Lampe Galaxie (Viral TikTok), 3. Brosse Vapeur Chat. Voulez-vous que j'analyse l'un d'eux ?";
-        }
-
-        if (lowerInput.includes('marge') || lowerInput.includes('prix')) {
-            return "Pour une stratégie saine, visez une marge brute d'au moins 20€ ou un x3 sur le prix d'achat. Utilisez notre calculateur de profit intégré dans la fiche produit.";
-        }
-
-        if (lowerInput.includes('pub') || lowerInput.includes('ads') || lowerInput.includes('tiktok')) {
-            return "Sur TikTok, le 'hook' (les 3 premières secondes) est crucial. Essayez de montrer le problème AVANT la solution. Exemple pour un correcteur de dos : montrez quelqu'un voûté qui a mal, puis le soulagement immédiat.";
-        }
-
-        return "Je suis spécialisé en e-commerce. Posez-moi des questions sur le sourcing, le marketing ou l'optimisation de votre boutique.";
-    };
-
     const sendMessage = async (text: string) => {
-        if (!text.trim()) return;
+        if (!text.trim() || isTyping) return;
 
         const userMsg: Message = {
             id: Date.now().toString(),
-            text: text,
-            sender: 'user',
+            role: 'user',
+            content: text,
             timestamp: new Date()
         };
 
@@ -79,17 +55,45 @@ export default function Chatbot({ userSubscription = 'free' }: { userSubscriptio
         setInputValue('');
         setIsTyping(true);
 
-        setTimeout(() => {
-            const responseText = generateResponse(text);
+        try {
+            // Build message history for API
+            const messageHistory = [...messages, userMsg].map(m => ({
+                role: m.role,
+                content: m.content
+            }));
+
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: messageHistory })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erreur API');
+            }
+
+            const data = await response.json();
+
             const aiMsg: Message = {
                 id: (Date.now() + 1).toString(),
-                text: responseText,
-                sender: 'ai',
+                role: 'assistant',
+                content: data.message || "Désolé, je n'ai pas pu répondre.",
                 timestamp: new Date()
             };
+
             setMessages(prev => [...prev, aiMsg]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            const errorMsg: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: "❌ Désolé, une erreur s'est produite. Veuillez réessayer.",
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMsg]);
+        } finally {
             setIsTyping(false);
-        }, 1500);
+        }
     };
 
     const handleSendMessage = async (e?: React.FormEvent) => {
@@ -97,63 +101,91 @@ export default function Chatbot({ userSubscription = 'free' }: { userSubscriptio
         sendMessage(inputValue);
     };
 
+    const handleQuickQuestion = (question: string) => {
+        const fullQuestions: Record<string, string> = {
+            "🏆 Produit gagnant": "Quels sont les critères d'un produit gagnant en dropshipping ? Donne-moi des exemples de niches tendance.",
+            "📊 Analyser une niche": "Comment analyser une niche pour savoir si elle est rentable ? Quels indicateurs regarder ?",
+            "💡 Idées TikTok": "Donne-moi des idées de contenus TikTok pour promouvoir mes produits en dropshipping.",
+            "💰 Calculer ma marge": "Comment calculer correctement ma marge en dropshipping ? Quel multiplicateur utiliser ?"
+        };
+        sendMessage(fullQuestions[question] || question);
+    };
+
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {isOpen && (
-                <Card className="w-80 h-96 mb-4 flex flex-col overflow-hidden shadow-2xl shadow-primary/20 animate-in slide-in-from-bottom-10 fade-in duration-200 bg-card border-border">
-                    <div className="bg-primary p-4 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <div className="p-1 bg-white/20 rounded-full">
-                                <Bot size={20} className="text-primary-foreground" />
+                <Card className="w-96 h-[500px] mb-4 flex flex-col overflow-hidden shadow-2xl shadow-primary/20 animate-in slide-in-from-bottom-10 fade-in duration-200 bg-card border-border">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-xl">
+                                <Sparkles size={20} className="text-white" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-primary-foreground text-sm">DropTrend AI</h3>
+                                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                                    DropTrend AI
+                                    <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">GPT-4</span>
+                                </h3>
                                 <div className="flex items-center gap-1">
                                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                    <span className="text-primary-foreground/80 text-xs">En ligne</span>
+                                    <span className="text-white/80 text-xs">En ligne</span>
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg"
+                        >
                             <X size={18} />
                         </button>
                     </div>
 
+                    {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/50">
                         {messages.map(msg => (
-                            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${msg.sender === 'user'
-                                        ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                        : 'bg-card text-foreground rounded-tl-none border border-border shadow-sm'
+                            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                {msg.role === 'assistant' && (
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2 shrink-0">
+                                        <Bot size={16} className="text-white" />
+                                    </div>
+                                )}
+                                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === 'user'
+                                    ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                    : 'bg-card text-foreground rounded-tl-none border border-border shadow-sm'
                                     }`}>
-                                    {msg.text}
+                                    <div className="whitespace-pre-wrap">{msg.content}</div>
                                 </div>
                             </div>
                         ))}
                         {isTyping && (
                             <div className="flex justify-start">
-                                <div className="bg-card rounded-2xl rounded-tl-none px-4 py-3 border border-border flex gap-1">
-                                    <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce"></span>
-                                    <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce delay-100"></span>
-                                    <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce delay-200"></span>
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
+                                    <Bot size={16} className="text-white" />
+                                </div>
+                                <div className="bg-card rounded-2xl rounded-tl-none px-4 py-3 border border-border flex items-center gap-2">
+                                    <Loader2 size={16} className="animate-spin text-blue-500" />
+                                    <span className="text-sm text-muted-foreground">Réflexion...</span>
                                 </div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
 
+                    {/* Quick Questions */}
                     <div className="px-4 py-2 bg-muted flex gap-2 overflow-x-auto no-scrollbar border-t border-border">
                         {PREDEFINED_QUESTIONS.map((q, i) => (
                             <button
                                 key={i}
-                                onClick={() => sendMessage(q)}
-                                className="whitespace-nowrap px-3 py-1.5 bg-card hover:bg-muted-foreground/10 border border-border rounded-full text-xs text-muted-foreground transition-colors shadow-sm"
+                                onClick={() => handleQuickQuestion(q)}
+                                disabled={isTyping}
+                                className="whitespace-nowrap px-3 py-1.5 bg-card hover:bg-muted-foreground/10 border border-border rounded-full text-xs text-muted-foreground transition-colors shadow-sm disabled:opacity-50"
                             >
                                 {q}
                             </button>
                         ))}
                     </div>
 
+                    {/* Input */}
                     <form onSubmit={handleSendMessage} className="p-3 bg-card border-t border-border flex gap-2">
                         <input
                             type="text"
@@ -161,9 +193,15 @@ export default function Chatbot({ userSubscription = 'free' }: { userSubscriptio
                             placeholder="Posez une question..."
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
+                            disabled={isTyping}
                         />
-                        <Button type="submit" size="icon" className="rounded-full w-10 h-10 shrink-0" disabled={!inputValue.trim() || isTyping}>
-                            <Send size={16} />
+                        <Button
+                            type="submit"
+                            size="icon"
+                            className="rounded-full w-10 h-10 shrink-0"
+                            disabled={!inputValue.trim() || isTyping}
+                        >
+                            {isTyping ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                         </Button>
                     </form>
                 </Card>
@@ -171,7 +209,7 @@ export default function Chatbot({ userSubscription = 'free' }: { userSubscriptio
 
             <Button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`rounded-full w-14 h-14 shadow-lg shadow-blue-600/20 transition-all duration-300 ${isOpen ? 'rotate-90 scale-0 opacity-0 hidden' : 'scale-100 opacity-100'}`}
+                className={`rounded-full w-14 h-14 shadow-lg shadow-blue-600/30 transition-all duration-300 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 ${isOpen ? 'rotate-90 scale-0 opacity-0 hidden' : 'scale-100 opacity-100'}`}
             >
                 <MessageCircle size={28} />
             </Button>
