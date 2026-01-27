@@ -1,30 +1,45 @@
-import twilio from 'twilio';
-
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-// Use user's purchasing number or a default fallback if testing
-// Note: Without a purchased number, this works if using a Verified Caller ID or specialized Service SID, 
-// but standard API usage requires a 'From' number.
-const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-
-const client = twilio(accountSid, authToken);
+const VONAGE_API_KEY = process.env.VONAGE_API_KEY;
+const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET;
+const FROM_NAME = "DropTrend"; // Alphanumeric sender ID (works in most countries without registration)
 
 export async function sendSMS(to: string, code: string) {
-    if (!accountSid || !authToken || !fromNumber) {
-        console.warn('Twilio not configured properly');
-        return { success: false, error: 'Twilio configuration missing' };
+    if (!VONAGE_API_KEY || !VONAGE_API_SECRET) {
+        console.warn('Vonage configuration missing');
+        // Fallback for development if no keys
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[DEV-MODE] Vonage missing. SMS Code for ${to}: ${code}`);
+            return { success: true };
+        }
+        return { success: false, error: 'Vonage configuration missing' };
     }
 
     try {
-        const message = await client.messages.create({
-            body: `Votre code de vérification DropTrend est : ${code}`,
-            from: fromNumber,
-            to: to
+        const body = new URLSearchParams();
+        body.append('api_key', VONAGE_API_KEY);
+        body.append('api_secret', VONAGE_API_SECRET);
+        body.append('from', FROM_NAME);
+        body.append('to', to.replace('+', '')); // Vonage often prefers no plus, just digits
+        body.append('text', `Votre code de vérification DropTrend est : ${code}`);
+
+        const response = await fetch('https://rest.nexmo.com/sms/json', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: body.toString()
         });
-        console.log('SMS sent:', message.sid);
-        return { success: true };
+
+        const data = await response.json();
+
+        if (data.messages && data.messages[0].status === '0') {
+            console.log('Vonage SMS sent:', data.messages[0]['message-id']);
+            return { success: true };
+        } else {
+            console.error('Vonage Error:', data.messages ? data.messages[0]['error-text'] : data);
+            return { success: false, error: data.messages ? data.messages[0]['error-text'] : 'Failed to send' };
+        }
     } catch (error) {
-        console.error('Error sending SMS:', error);
+        console.error('Error sending SMS via Vonage:', error);
         return { success: false, error: 'Failed to send SMS' };
     }
 }
