@@ -130,8 +130,8 @@ export async function register(
   const password = formData.get('password') as string;
 
   // Phone is now optional during registration (Cost Saving)
-  // const phoneNumber = formData.get('phoneNumber') as string;
-  // const otpCode = formData.get('otpCode') as string; 
+  const phoneNumber = formData.get('phoneNumber') as string;
+  const otpCode = formData.get('otpCode') as string;
 
   if (!email || !password || !name) {
     return 'Tous les champs sont requis (Email, Mot de passe, Nom).';
@@ -143,11 +143,23 @@ export async function register(
     return "Ce nom n'est pas autorisé.";
   }
 
-  // SMS Verification Removed for Cost Saving
-  /*
+  if (!phoneNumber || !otpCode) {
+    return 'Veuillez vérifier votre numéro de téléphone.';
+  }
+
   const verification = await db.phoneVerification.findUnique({ where: { phoneNumber } });
-  if (!verification || verification.code !== otpCode) ...
-  */
+
+  if (!verification) {
+    return "Code expiré ou numéro invalide.";
+  }
+
+  if (verification.code !== otpCode) {
+    return "Code de vérification incorrect.";
+  }
+
+  if (new Date() > verification.expiresAt) {
+    return "Le code a expiré.";
+  }
 
   // Build password validation
   const passwordValidation = validatePassword(password);
@@ -167,7 +179,7 @@ export async function register(
         name,
         email,
         password: hashedPassword,
-        phoneNumber: null, // Will be added during Pro upgrade
+        phoneNumber: phoneNumber, // Phone is verified
         subscription: 'free',
         subscriptionPlan: 'monthly',
         language: 'fr',

@@ -119,6 +119,60 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Téléphone (SMS)</label>
+                        <div className="flex gap-2">
+                            <div className="flex-1 bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-2 py-1 text-white focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all">
+                                <PhoneInput
+                                    placeholder="06 12 34 56 78"
+                                    value={phoneValue}
+                                    onChange={setPhoneValue}
+                                    defaultCountry="FR"
+                                    className="bg-transparent border-none text-sm w-full phone-input-dark"
+                                />
+                            </div>
+                            {!otpSent ? (
+                                <Button
+                                    type="button"
+                                    onClick={handleSendCode}
+                                    disabled={!phoneValue || isSendingCode}
+                                    className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs px-3"
+                                >
+                                    {isSendingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Envoyer Code'}
+                                </Button>
+                            ) : (
+                                <div className="flex items-center justify-center w-10 bg-green-500/20 text-green-400 rounded-lg border border-green-500/30">
+                                    <Check size={16} />
+                                </div>
+                            )}
+                        </div>
+
+                        {otpSent && (
+                            <div className="animate-in fade-in slide-in-from-top-2 mt-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Code de vérification</label>
+                                <input
+                                    name="otpCode"
+                                    type="text"
+                                    placeholder="123456"
+                                    className="w-full bg-slate-950/50 border border-green-500/30 rounded-lg px-4 py-3 text-white text-center tracking-[0.5em] font-mono text-lg focus:outline-none focus:border-green-500/50 transition-all placeholder:text-slate-700 placeholder:tracking-normal placeholder:font-sans placeholder:text-sm"
+                                    maxLength={6}
+                                    required
+                                />
+                                <div className="text-[10px] text-slate-500 mt-1 flex justify-between">
+                                    <span>Code envoyé au {phoneValue}</span>
+                                    <button type="button" onClick={() => setOtpSent(false)} className="text-blue-400 hover:text-blue-300">Modifier</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {phoneError && (
+                            <p className="text-xs text-red-400 mt-1">{phoneError}</p>
+                        )}
+
+                        {/* Hidden input to submit phone number */}
+                        <input type="hidden" name="phoneNumber" value={phoneValue || ''} />
+                    </div>
+
+                    <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mot de passe</label>
                             <span className={`text-[10px] font-bold ${allRulesPassed ? 'text-green-400' : 'text-blue-400/80'}`}>
