@@ -25,6 +25,18 @@ export default function SettingsForm({ user }: SettingsFormProps) {
   const [verificationStep, setVerificationStep] = useState<'idle' | 'code_sent' | 'verified'>(user.phoneNumber ? 'verified' : 'idle');
   const [phoneError, setPhoneError] = useState('');
 
+  // Auto-focus verification if requested
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('verify') === 'true' && !user.phoneNumber) {
+        // Scroll to phone section
+        const phoneSection = document.getElementById('phone-verification-section');
+        if (phoneSection) phoneSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [user.phoneNumber]);
+
   const handleSendCode = async () => {
     setIsRequesting(true);
     setPhoneError('');
@@ -73,7 +85,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
         </div>
 
         {/* Phone Verification Section */}
-        <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl space-y-3">
+        <div id="phone-verification-section" className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl space-y-3">
           <label className="block text-sm font-medium text-slate-400">Numéro de téléphone (Vérification obligatoire)</label>
 
           <div className="flex flex-col gap-3">

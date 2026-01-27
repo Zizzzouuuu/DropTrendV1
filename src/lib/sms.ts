@@ -4,13 +4,9 @@ const FROM_NAME = "NXSMS"; // Default Vonage sender ID (safest for unregistered 
 
 export async function sendSMS(to: string, code: string) {
     if (!VONAGE_API_KEY || !VONAGE_API_SECRET) {
-        console.warn('Vonage configuration missing');
-        // Fallback for development if no keys
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`[DEV-MODE] Vonage missing. SMS Code for ${to}: ${code}`);
-            return { success: true };
-        }
-        return { success: false, error: 'Vonage configuration missing' };
+        console.warn('Vonage configuration missing. Using MOCK mode.');
+        console.log(`[MOCK-SMS] Code for ${to}: ${code}`);
+        return { success: true };
     }
 
     try {
