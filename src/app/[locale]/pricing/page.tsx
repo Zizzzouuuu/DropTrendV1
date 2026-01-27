@@ -18,7 +18,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       <Navbar />
-      
+
       <main className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-black text-white mb-6">Investissez dans votre réussite</h1>
@@ -27,14 +27,14 @@ export default function PricingPage() {
           </p>
 
           <div className="flex items-center justify-center gap-4 mt-8">
-              <span className={`text-sm font-bold ${billingInterval === 'monthly' ? 'text-white' : 'text-slate-500'}`}>Mensuel</span>
-              <button 
-                onClick={() => setBillingInterval(billingInterval === 'monthly' ? 'yearly' : 'monthly')}
-                className="w-14 h-8 bg-slate-800 rounded-full relative transition-colors"
-              >
-                  <div className={`absolute top-1 w-6 h-6 bg-blue-600 rounded-full transition-all ${billingInterval === 'yearly' ? 'left-7' : 'left-1'}`}></div>
-              </button>
-              <span className={`text-sm font-bold ${billingInterval === 'yearly' ? 'text-white' : 'text-slate-500'}`}>Annuel <span className="text-emerald-400">(-30%)</span></span>
+            <span className={`text-sm font-bold ${billingInterval === 'monthly' ? 'text-white' : 'text-slate-500'}`}>Mensuel</span>
+            <button
+              onClick={() => setBillingInterval(billingInterval === 'monthly' ? 'yearly' : 'monthly')}
+              className="w-14 h-8 bg-slate-800 rounded-full relative transition-colors"
+            >
+              <div className={`absolute top-1 w-6 h-6 bg-blue-600 rounded-full transition-all ${billingInterval === 'yearly' ? 'left-7' : 'left-1'}`}></div>
+            </button>
+            <span className={`text-sm font-bold ${billingInterval === 'yearly' ? 'text-white' : 'text-slate-500'}`}>Annuel <span className="text-emerald-400">(-30%)</span></span>
           </div>
         </div>
 
@@ -47,7 +47,7 @@ export default function PricingPage() {
               <span className="text-slate-500">/mois</span>
             </div>
             <p className="text-slate-400 mb-8">Pour découvrir la plateforme et voir quelques produits.</p>
-            
+
             <ul className="space-y-4 mb-8">
               <li className="flex items-center gap-3 text-slate-300">
                 <CheckCircle size={18} className="text-blue-500" /> 3 Produits gagnants / jour
@@ -61,7 +61,7 @@ export default function PricingPage() {
             </ul>
 
             <Link href="/login">
-                <Button variant="outline" className="w-full">Commencer gratuitement</Button>
+              <Button variant="outline" className="w-full">Commencer gratuitement</Button>
             </Link>
           </Card>
 
@@ -75,7 +75,7 @@ export default function PricingPage() {
               {billingInterval === 'yearly' && <p className="text-emerald-400 text-xs mt-1">Soit {yearlyPricePerMonth.toFixed(2)}€/mois</p>}
             </div>
             <p className="text-blue-200 mb-8">Accès illimité à tous les outils et produits gagnants.</p>
-            
+
             <ul className="space-y-4 mb-8">
               <li className="flex items-center gap-3 text-white">
                 <CheckCircle size={18} className="text-blue-400" /> Accès illimité aux produits
@@ -91,18 +91,33 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <Link href="/register?plan=pro">
-                <Button className="w-full bg-blue-600 hover:bg-blue-500 border-none">Devenir Membre Pro</Button>
-            </Link>
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/stripe/checkout', {
+                    method: 'POST',
+                    body: JSON.stringify({ plan: 'pro', interval: billingInterval }),
+                  });
+                  const data = await res.json();
+                  if (data.url) window.location.href = data.url;
+                  else alert('Erreur lors de la création du paiement.');
+                } catch (e) {
+                  alert('Erreur réseau.');
+                }
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-500 border-none"
+            >
+              Devenir Membre Pro
+            </Button>
           </Card>
         </div>
 
         <div className="max-w-3xl mx-auto mt-20 text-center">
-            <div className="inline-flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full border border-slate-800 mb-6">
-                <ShieldCheck size={16} className="text-emerald-500" />
-                <span className="text-sm font-medium text-slate-300">Garantie satisfait ou remboursé 14 jours</span>
-            </div>
-            <p className="text-slate-500 text-sm">Paiement sécurisé via Stripe. Annulation possible à tout moment.</p>
+          <div className="inline-flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full border border-slate-800 mb-6">
+            <ShieldCheck size={16} className="text-emerald-500" />
+            <span className="text-sm font-medium text-slate-300">Garantie satisfait ou remboursé 14 jours</span>
+          </div>
+          <p className="text-slate-500 text-sm">Paiement sécurisé via Stripe. Annulation possible à tout moment.</p>
         </div>
       </main>
 
