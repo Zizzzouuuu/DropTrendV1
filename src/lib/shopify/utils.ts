@@ -73,3 +73,30 @@ export async function exchangeShopifyToken(shop: string, code: string) {
 
     return response.json();
 }
+
+/**
+ * Helper to make authenticated requests to Shopify Admin API
+ */
+export async function shopifyFetch(shop: string, accessToken: string, endpoint: string, options: RequestInit = {}) {
+    const url = `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/${endpoint}`;
+
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(options.headers || {})
+        }
+    });
+
+    if (!response.ok) {
+        // Handle rate limits or other errors gracefully if needed
+        if (response.status === 429) {
+            console.warn("Shopify Rate Limit Hit");
+        }
+        throw new Error(`Shopify API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+}

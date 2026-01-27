@@ -12,17 +12,12 @@ export default async function middleware(req: NextRequest) {
 
   // 1. Force Redirect non-localized dashboard/protected routes to default locale (fr)
   // This is critical to prevent 404s on /dashboard access
-  if (
-    !pathname.startsWith('/fr') &&
-    !pathname.startsWith('/en') &&
-    !pathname.startsWith('/api') &&
-    !pathname.startsWith('/_next') &&
-    !pathname.includes('.')
-  ) {
-    // Force 'fr' for root paths like /dashboard, /pricing etc if they don't match
-    const locale = routing.defaultLocale;
-    return NextResponse.redirect(new URL(`/${locale}${pathname}`, req.url));
-  }
+  // 1. Force Redirect removed to allow auto-detection by intlMiddleware
+  // Usage of next-intl middleware will automatically handle locale negotiation
+
+  // However, we still want to protect dashboard routes from being accessed without ANY locale?
+  // next-intl does this by redirecting /dashboard to /fr/dashboard or /en/dashboard.
+  // So we can remove the manual block.
 
   // 2. Run Intl Middleware to handle locale redirects and rewrites
   const res = intlMiddleware(req);

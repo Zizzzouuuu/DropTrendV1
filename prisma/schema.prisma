@@ -17,6 +17,7 @@ model User {
   password        String?
   subscription    String         @default("free") // "free", "starter", "pro"
   subscriptionPlan String        @default("monthly") // "monthly", "yearly"
+  stripeCustomerId String?       @unique // For subscription management
   shopifyConnected Boolean       @default(false)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

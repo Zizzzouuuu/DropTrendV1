@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Normalize shop URL
-    shop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    shop = shop.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
     if (!shop.includes('.')) {
         shop += '.myshopify.com';
     }
+    // Ensure shop is just domain, not full url path
+    shop = shop.split('/')[0];
 
     try {
         const authUrl = getShopifyAuthUrl(shop);

@@ -95,6 +95,7 @@ export default function RegisterPage() {
                     <p className="text-slate-400 text-sm">Accédez à la suite d'outils DropTrend.</p>
                 </div>
 
+// Simplified Register Page (Email/Pass only) - 2026 Optimization
                 <form action={dispatch} className="space-y-5">
                     <div className="space-y-1.5">
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nom complet</label>
@@ -105,56 +106,6 @@ export default function RegisterPage() {
                             placeholder="Jean Dupont"
                             required
                         />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Téléphone</label>
-                        <div className="flex flex-col gap-2">
-                            <div className="flex gap-2">
-                                <div className="phone-input-dark-theme flex-1">
-                                    <PhoneInput
-                                        placeholder="Numéro de téléphone"
-                                        value={phoneValue}
-                                        onChange={setPhoneValue}
-                                        defaultCountry="FR"
-                                        className="flex gap-2"
-                                        numberInputProps={{
-                                            className: "w-full bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
-                                        }}
-                                        disabled={otpSent}
-                                    />
-                                </div>
-                                <Button
-                                    type="button"
-                                    onClick={handleSendCode}
-                                    disabled={!phoneValue || isSendingCode || otpSent}
-                                    className="px-4 py-3 h-[46px]"
-                                    variant="outline"
-                                >
-                                    {isSendingCode ? <Loader2 className="animate-spin w-4 h-4" /> : otpSent ? <Check className="w-4 h-4 text-green-500" /> : 'Rejoindre'}
-                                </Button>
-                            </div>
-
-                            {otpSent && (
-                                <div className="animate-in fade-in slide-in-from-top-2 space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Code de vérification</label>
-                                    <input
-                                        name="otpCode"
-                                        type="text"
-                                        className="w-full bg-slate-950/50 border border-blue-500/50 rounded-lg px-4 py-3 text-white text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-                                        placeholder="123456"
-                                        required
-                                        maxLength={6}
-                                    />
-                                    <p className="text-[10px] text-green-400">Code envoyé au {phoneValue}</p>
-                                </div>
-                            )}
-
-                            {phoneError && (
-                                <p className="text-[10px] text-red-400">{phoneError}</p>
-                            )}
-                        </div>
-                        <input type="hidden" name="phoneNumber" value={phoneValue || ''} />
                     </div>
 
                     <div className="space-y-1.5">
@@ -233,7 +184,7 @@ export default function RegisterPage() {
                         )}
                     </div>
 
-                    <RegisterButton disabled={!otpSent} />
+                    <RegisterButton />
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-[rgba(0,139,255,0.2)] text-center">

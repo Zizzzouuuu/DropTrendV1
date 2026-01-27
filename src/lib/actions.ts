@@ -128,11 +128,13 @@ export async function register(
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const phoneNumber = formData.get('phoneNumber') as string;
-  const otpCode = formData.get('otpCode') as string; // NEW
 
-  if (!email || !password || !name || !phoneNumber || !otpCode) {
-    return 'Tous les champs sont requis (Email, Mot de passe, Nom, Téléphone, Code SMS).';
+  // Phone is now optional during registration (Cost Saving)
+  // const phoneNumber = formData.get('phoneNumber') as string;
+  // const otpCode = formData.get('otpCode') as string; 
+
+  if (!email || !password || !name) {
+    return 'Tous les champs sont requis (Email, Mot de passe, Nom).';
   }
 
   // Security Rule: Bad Words Filter
@@ -141,14 +143,11 @@ export async function register(
     return "Ce nom n'est pas autorisé.";
   }
 
-  // Verify OTP
+  // SMS Verification Removed for Cost Saving
+  /*
   const verification = await db.phoneVerification.findUnique({ where: { phoneNumber } });
-  if (!verification || verification.code !== otpCode) {
-    return "Code de vérification incorrect.";
-  }
-  if (new Date() > verification.expiresAt) {
-    return "Code expiré. Demandez-en un nouveau.";
-  }
+  if (!verification || verification.code !== otpCode) ...
+  */
 
   // Build password validation
   const passwordValidation = validatePassword(password);
@@ -162,29 +161,20 @@ export async function register(
       return 'Cet email est déjà utilisé.';
     }
 
-    // Double check unique phone (race condition safe-ish)
-    const existingPhone = await db.user.findFirst({ where: { phoneNumber } });
-    if (existingPhone) {
-      return 'Ce numéro de téléphone est déjà lié à un compte.';
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
     await db.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        phoneNumber, // Verified!
+        phoneNumber: null, // Will be added during Pro upgrade
         subscription: 'free',
         subscriptionPlan: 'monthly',
         language: 'fr',
-        phoneVerifyCode: null, // Clear old fields if any
+        phoneVerifyCode: null,
         phoneVerifyExpires: null
       },
     });
-
-    // Cleanup verification token
-    await db.phoneVerification.delete({ where: { phoneNumber } });
 
   } catch (error) {
     console.error("Registration Failed:", error);

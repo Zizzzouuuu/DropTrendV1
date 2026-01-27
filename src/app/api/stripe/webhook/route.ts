@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
                 data: {
                     subscription: plan,
                     subscriptionPlan: interval,
+                    stripeCustomerId: session.customer as string
                 }
             });
             console.log(`[STRIPE] User ${userId} upgraded to ${plan} (${interval})`);

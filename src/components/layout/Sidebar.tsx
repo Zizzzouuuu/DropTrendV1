@@ -10,9 +10,9 @@ export const Sidebar = () => {
     const pathname = usePathname();
 
     const navItems = [
-        { href: '/dashboard', label: 'Calculatrice Profit', icon: Calculator },
         { href: '/dashboard/winners', label: 'Produits Gagnants IA', icon: Trophy },
         { href: '/dashboard/sourcing', label: 'Recherche Produits', icon: Sparkles },
+        { href: '/dashboard', label: 'Calculatrice Profit', icon: Calculator },
         { href: '/dashboard/tracker', label: 'Tracker Boutique', icon: BarChart3 },
         { href: '/dashboard/ads', label: 'Analyse Publicitaire', icon: Zap },
         { href: '/dashboard/shopify', label: 'Mon Shopify', icon: Store },
