@@ -95,7 +95,6 @@ export default function RegisterPage() {
                     <p className="text-slate-400 text-sm">Accédez à la suite d'outils DropTrend.</p>
                 </div>
 
-// Simplified Register Page (Email/Pass only) - 2026 Optimization
                 <form action={dispatch} className="space-y-5">
                     <div className="space-y-1.5">
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nom complet</label>
