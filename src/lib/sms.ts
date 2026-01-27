@@ -19,7 +19,7 @@ export async function sendSMS(to: string, code: string) {
         body.append('api_secret', VONAGE_API_SECRET);
         body.append('from', FROM_NAME);
         body.append('to', to.replace('+', '')); // Vonage often prefers no plus, just digits
-        body.append('text', `Votre code de vérification DropTrend est : ${code}`);
+        body.append('text', `Your DropTrend verification code is: ${code}`);
 
         const response = await fetch('https://rest.nexmo.com/sms/json', {
             method: 'POST',
