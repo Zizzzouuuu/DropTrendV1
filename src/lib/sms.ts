@@ -1,6 +1,6 @@
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY;
 const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET;
-const FROM_NAME = "NXSMS"; // Default Vonage sender ID (safest for unregistered delivery in Turkey)
+const FROM_NAME = "DropTrend"; // Changed from NXSMS to avoid blocking in Turkey
 
 export async function sendSMS(to: string, code: string) {
     if (!VONAGE_API_KEY || !VONAGE_API_SECRET) {
