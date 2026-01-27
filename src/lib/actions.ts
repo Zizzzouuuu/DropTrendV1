@@ -81,6 +81,46 @@ export async function authenticate(
   }
 }
 
+import { sendSMS } from './sms';
+
+export async function sendRegistrationOTP(phoneNumber: string) {
+  // 1. Format check
+  if (!phoneNumber.startsWith('+') || phoneNumber.length < 8) {
+    return { error: "Format invalide. Utilisez le format international (ex: +33...)." };
+  }
+
+  // 2. Uniqueness check
+  const existingUser = await db.user.findFirst({ where: { phoneNumber } });
+  if (existingUser) {
+    return { error: "Ce numéro est déjà utilisé." };
+  }
+
+  // 3. Rate Limit (reuse logic or simple check on createdAt of last code)
+  const lastCode = await db.phoneVerification.findUnique({ where: { phoneNumber } });
+  if (lastCode) {
+    const timeDiff = Date.now() - new Date(lastCode.createdAt).getTime();
+    if (timeDiff < 60000) { // 60s
+      return { error: "Veuillez attendre 1 minute avant de renvoyer un code." };
+    }
+  }
+
+  // 4. Generate & Save
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+  await db.phoneVerification.upsert({
+    where: { phoneNumber },
+    update: { code, expiresAt: expires, createdAt: new Date() },
+    create: { phoneNumber, code, expiresAt: expires }
+  });
+
+  // 5. Send SMS
+  const sent = await sendSMS(phoneNumber, code);
+  if (!sent.success) return { error: "Erreur d'envoi SMS." };
+
+  return { success: true, message: "Code envoyé !" };
+}
+
 export async function register(
   prevState: string | undefined,
   formData: FormData,
@@ -89,9 +129,10 @@ export async function register(
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const phoneNumber = formData.get('phoneNumber') as string;
+  const otpCode = formData.get('otpCode') as string; // NEW
 
-  if (!email || !password || !name || !phoneNumber) {
-    return 'Tous les champs sont requis (Email, Mot de passe, Nom, Téléphone).';
+  if (!email || !password || !name || !phoneNumber || !otpCode) {
+    return 'Tous les champs sont requis (Email, Mot de passe, Nom, Téléphone, Code SMS).';
   }
 
   // Security Rule: Bad Words Filter
@@ -100,13 +141,16 @@ export async function register(
     return "Ce nom n'est pas autorisé.";
   }
 
-  // Security Rule: Strict Phone Format
-  // Basic check: must start with + and have at least 8 digits
-  if (!phoneNumber.startsWith('+') || phoneNumber.length < 8) {
-    return "Format de téléphone invalide. Utilisez le format international (ex: +33...).";
+  // Verify OTP
+  const verification = await db.phoneVerification.findUnique({ where: { phoneNumber } });
+  if (!verification || verification.code !== otpCode) {
+    return "Code de vérification incorrect.";
+  }
+  if (new Date() > verification.expiresAt) {
+    return "Code expiré. Demandez-en un nouveau.";
   }
 
-  // Security Rule: Strict Password Validation
+  // Build password validation
   const passwordValidation = validatePassword(password);
   if (!passwordValidation.valid) {
     return `Mot de passe invalide: ${passwordValidation.errors.join(', ')}`;
@@ -118,7 +162,7 @@ export async function register(
       return 'Cet email est déjà utilisé.';
     }
 
-    // Security Rule: Unique Phone Number
+    // Double check unique phone (race condition safe-ish)
     const existingPhone = await db.user.findFirst({ where: { phoneNumber } });
     if (existingPhone) {
       return 'Ce numéro de téléphone est déjà lié à un compte.';
@@ -130,19 +174,23 @@ export async function register(
         name,
         email,
         password: hashedPassword,
-        phoneNumber, // Saves the number, but verification (OTP) happens in Settings
+        phoneNumber, // Verified!
         subscription: 'free',
         subscriptionPlan: 'monthly',
-        language: 'fr'
+        language: 'fr',
+        phoneVerifyCode: null, // Clear old fields if any
+        phoneVerifyExpires: null
       },
     });
+
+    // Cleanup verification token
+    await db.phoneVerification.delete({ where: { phoneNumber } });
 
   } catch (error) {
     console.error("Registration Failed:", error);
     return error instanceof Error ? error.message : 'Failed to create user.';
   }
 
-  // Default to French for redirection after server action
   redirect('/fr/login?registered=true');
 }
 

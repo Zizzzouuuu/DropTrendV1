@@ -4,16 +4,16 @@ import React, { useActionState, useState, useMemo } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { TrendingUp, ArrowLeft, AlertCircle, Check, X } from 'lucide-react';
+import { TrendingUp, ArrowLeft, AlertCircle, Check, X, Loader2 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-import { register } from '@/lib/actions';
+import { register, sendRegistrationOTP } from '@/lib/actions';
 import 'react-phone-number-input/style.css';
 import PhoneInput from 'react-phone-number-input';
 
-function RegisterButton() {
+function RegisterButton({ disabled }: { disabled?: boolean }) {
     const { pending } = useFormStatus();
     return (
-        <Button className="w-full h-12 mt-6" disabled={pending} type="submit">
+        <Button className="w-full h-12 mt-6" disabled={pending || disabled} type="submit">
             {pending ? 'Création...' : 'Créer mon compte'}
         </Button>
     );
@@ -36,6 +36,29 @@ export default function RegisterPage() {
     const [errorMessage, dispatch] = useActionState(register, undefined);
     const [phoneValue, setPhoneValue] = useState<string | undefined>();
     const [password, setPassword] = useState('');
+
+    // OTP State
+    const [otpSent, setOtpSent] = useState(false);
+    const [isSendingCode, setIsSendingCode] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
+
+    const handleSendCode = async () => {
+        if (!phoneValue) return;
+        setIsSendingCode(true);
+        setPhoneError('');
+        try {
+            const res = await sendRegistrationOTP(phoneValue);
+            if (res.error) {
+                setPhoneError(res.error);
+            } else {
+                setOtpSent(true);
+            }
+        } catch (e) {
+            setPhoneError("Erreur lors de l'envoi.");
+        } finally {
+            setIsSendingCode(false);
+        }
+    };
 
     // Real-time password validation
     const passwordChecks = useMemo(() => {
@@ -86,20 +109,52 @@ export default function RegisterPage() {
 
                     <div className="space-y-1.5">
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Téléphone</label>
-                        <div className="phone-input-dark-theme">
-                            <PhoneInput
-                                placeholder="Numéro de téléphone"
-                                value={phoneValue}
-                                onChange={setPhoneValue}
-                                defaultCountry="FR"
-                                className="flex gap-2"
-                                numberInputProps={{
-                                    className: "w-full bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
-                                }}
-                            />
+                        <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                                <div className="phone-input-dark-theme flex-1">
+                                    <PhoneInput
+                                        placeholder="Numéro de téléphone"
+                                        value={phoneValue}
+                                        onChange={setPhoneValue}
+                                        defaultCountry="FR"
+                                        className="flex gap-2"
+                                        numberInputProps={{
+                                            className: "w-full bg-slate-950/50 border border-[rgba(0,139,255,0.2)] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm placeholder:text-slate-600"
+                                        }}
+                                        disabled={otpSent}
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={handleSendCode}
+                                    disabled={!phoneValue || isSendingCode || otpSent}
+                                    className="px-4 py-3 h-[46px]"
+                                    variant="outline"
+                                >
+                                    {isSendingCode ? <Loader2 className="animate-spin w-4 h-4" /> : otpSent ? <Check className="w-4 h-4 text-green-500" /> : 'Rejoindre'}
+                                </Button>
+                            </div>
+
+                            {otpSent && (
+                                <div className="animate-in fade-in slide-in-from-top-2 space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Code de vérification</label>
+                                    <input
+                                        name="otpCode"
+                                        type="text"
+                                        className="w-full bg-slate-950/50 border border-blue-500/50 rounded-lg px-4 py-3 text-white text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                                        placeholder="123456"
+                                        required
+                                        maxLength={6}
+                                    />
+                                    <p className="text-[10px] text-green-400">Code envoyé au {phoneValue}</p>
+                                </div>
+                            )}
+
+                            {phoneError && (
+                                <p className="text-[10px] text-red-400">{phoneError}</p>
+                            )}
                         </div>
                         <input type="hidden" name="phoneNumber" value={phoneValue || ''} />
-                        <p className="text-[10px] text-slate-500 px-1">Un numéro unique est requis par compte.</p>
                     </div>
 
                     <div className="space-y-1.5">
@@ -178,7 +233,7 @@ export default function RegisterPage() {
                         )}
                     </div>
 
-                    <RegisterButton />
+                    <RegisterButton disabled={!otpSent} />
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-[rgba(0,139,255,0.2)] text-center">

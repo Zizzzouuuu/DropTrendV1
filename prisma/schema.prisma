@@ -227,3 +227,10 @@ model Integration {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model PhoneVerification {
+  phoneNumber String   @id
+  code        String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
