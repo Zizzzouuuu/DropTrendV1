@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
         // Validation: If no customer ID but subscription is not free, we have a data sync issue.
         // Attempt to find customer by email
         if (!customerId) {
-            const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+            const customers = await stripe.customers.list({ email: user.email || undefined, limit: 1 });
             if (customers.data.length > 0) {
                 customerId = customers.data[0].id;
                 // Sync back to DB
