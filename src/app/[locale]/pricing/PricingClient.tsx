@@ -18,6 +18,7 @@ interface PricingClientProps {
 }
 
 export default function PricingClient({ user }: PricingClientProps) {
+    console.log('[PricingClient] Received User Prop:', user);
     const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
     const router = useRouter();
 

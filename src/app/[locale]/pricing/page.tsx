@@ -6,6 +6,7 @@ import PricingClient from './PricingClient';
 
 export default async function PricingPage() {
   const session = await auth();
+  console.log('[PricingPage] Session:', session?.user?.email, session?.user?.id);
 
   let user = null;
   if (session?.user?.id) {
