@@ -45,15 +45,16 @@ export async function GET(req: Request) {
         const keyword = KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)];
         console.log(`[Cron] Hunting for keyword: "${keyword}"`);
 
-        // 4. Run Apify Actor (latitudetech/aliexpress-scraper)
-        // Note: Inputs depend on the specific actor version. 
-        const run = await apify.actor("latitudetech/aliexpress-scraper").call({
-            search: keyword,
-            sort: "ordersDesc",
-            shipTo: "US",
+        // 4. Run Apify Actor (piotrv1001/aliexpress-listings-scraper)
+        // Requires specific URL input to work reliably
+        const encodedKeyword = encodeURIComponent(keyword);
+        const searchUrl = `https://www.aliexpress.com/wholesale?SearchText=${encodedKeyword}&SortType=total_tranpro_desc`; // Sort by Orders
+
+        const run = await apify.actor("piotrv1001/aliexpress-listings-scraper").call({
+            searchUrls: [searchUrl],
             maxItems: 10,
+            shipTo: "US",
             currency: "USD",
-            language: "en_US",
             proxy: { useApifyProxy: true }
         });
 
