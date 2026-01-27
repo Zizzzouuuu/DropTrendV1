@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
 import ProfitCalculator from "@/components/dashboard/ProfitCalculator";
+import { UpgradeBanner } from "@/components/dashboard/UpgradeBanner";
 import { redirect } from "next/navigation";
 import { Link } from "@/i18n/routing";
+import { db } from "@/lib/db";
 
 export default async function DashboardPage() {
   try {
@@ -11,8 +13,17 @@ export default async function DashboardPage() {
       redirect("/login");
     }
 
+    // Fetch user subscription status
+    const user = await db.user.findUnique({
+      where: { email: session.user.email },
+      select: { subscription: true }
+    });
+
+    const isFree = user?.subscription === 'free';
+
     return (
       <div className="p-8 min-h-screen bg-slate-950/50">
+        {isFree && <UpgradeBanner />}
         <ProfitCalculator />
       </div>
     );
