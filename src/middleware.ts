@@ -13,15 +13,15 @@ export default async function middleware(req: NextRequest) {
   // 1. Force Redirect non-localized dashboard/protected routes to default locale (fr)
   // This is critical to prevent 404s on /dashboard access
   if (
-      !pathname.startsWith('/fr') && 
-      !pathname.startsWith('/en') && 
-      !pathname.startsWith('/api') && 
-      !pathname.startsWith('/_next') && 
-      !pathname.includes('.')
+    !pathname.startsWith('/fr') &&
+    !pathname.startsWith('/en') &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/_next') &&
+    !pathname.includes('.')
   ) {
-      // Force 'fr' for root paths like /dashboard, /pricing etc if they don't match
-      const locale = routing.defaultLocale;
-      return NextResponse.redirect(new URL(`/${locale}${pathname}`, req.url));
+    // Force 'fr' for root paths like /dashboard, /pricing etc if they don't match
+    const locale = routing.defaultLocale;
+    return NextResponse.redirect(new URL(`/${locale}${pathname}`, req.url));
   }
 
   // 2. Run Intl Middleware to handle locale redirects and rewrites
@@ -29,7 +29,7 @@ export default async function middleware(req: NextRequest) {
 
   // 3. Auth Logic
   const session = await auth();
-  
+
   // Extract locale from path
   const locale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
   const pathWithoutLocale = pathname.replace(new RegExp(`^/(${routing.locales.join('|')})`), '') || '/';
@@ -37,8 +37,16 @@ export default async function middleware(req: NextRequest) {
   const isAuthRoute = pathWithoutLocale.startsWith('/dashboard');
 
   if (isAuthRoute && !session?.user) {
-     const loginUrl = new URL(`/${locale}/login`, req.url);
-     return NextResponse.redirect(loginUrl);
+    const loginUrl = new URL(`/${locale}/login`, req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // 4. Security Headers
+  if (res) {
+    res.headers.set('X-Content-Type-Options', 'nosniff');
+    res.headers.set('X-Frame-Options', 'DENY');
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   }
 
   return res;

@@ -26,6 +26,9 @@ model User {
   avatar          String?
   language        String         @default("fr")
   phoneNumber     String?        @unique
+  phoneVerifyCode String?
+  phoneVerifyExpires DateTime?
+  lastSmsSent     DateTime?
 
 
   savedProducts   SavedProduct[]

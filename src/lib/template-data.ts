@@ -2,7 +2,7 @@ export interface ShopifyTemplate {
     id: string;
     name: string;
     description: string;
-    category: 'basic' | 'tech' | 'fashion' | 'beauty' | 'home' | 'sport' | 'luxury' | 'hacking';
+    category: 'generalist' | 'niche' | 'high-ticket';
     thumbnail: string;
     previewImages: string[];
     features: string[];
@@ -23,7 +23,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'starter-clean',
         name: 'Starter Clean',
         description: 'Template minimaliste parfait pour débuter. Design épuré, rapide et 100% responsive. Idéal pour les nouvelles boutiques.',
-        category: 'basic',
+        category: 'generalist',
         thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200',
@@ -42,7 +42,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'simple-store',
         name: 'Simple Store',
         description: 'Boutique classique avec hero banner, collections mises en avant et footer complet. Le choix sûr pour débuter.',
-        category: 'basic',
+        category: 'generalist',
         thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200'
@@ -60,7 +60,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'quick-launch',
         name: 'Quick Launch',
         description: 'One-page optimisé pour les boutiques mono-produit ou dropshipping. Conversion maximale avec CTA puissants.',
-        category: 'basic',
+        category: 'niche',
         thumbnail: 'https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?w=1200'
@@ -80,7 +80,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'tech-noir',
         name: 'Tech Noir',
         description: 'Dark mode futuriste pour boutiques tech et gadgets. Tableaux de specs, mode comparaison, effets néon subtils.',
-        category: 'tech',
+        category: 'niche',
         thumbnail: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200',
@@ -99,7 +99,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'fashion-elite',
         name: 'Fashion Elite',
         description: 'Style éditorial luxueux pour marques de mode. Larges images, lookbook intégré, typographie élégante.',
-        category: 'fashion',
+        category: 'high-ticket',
         thumbnail: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200',
@@ -118,7 +118,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'hacker-ui',
         name: 'Hacker UI',
         description: 'Esthétique terminal/cyberpunk pour boutiques tech, gaming ou NFT. Néon vert, effet matrix, animations glitch.',
-        category: 'hacking',
+        category: 'niche',
         thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200',
@@ -137,7 +137,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'luxury-brand',
         name: 'Luxury Brand',
         description: 'Template premium pour marques haut de gamme. Animations élégantes, micro-interactions, typographie raffinée.',
-        category: 'luxury',
+        category: 'high-ticket',
         thumbnail: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=1200'
@@ -155,7 +155,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'sport-dynamic',
         name: 'Sport Dynamic',
         description: 'Énergie et urgence pour boutiques sport et fitness. Countdown, stock limité, badges performance.',
-        category: 'sport',
+        category: 'niche',
         thumbnail: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=1200',
@@ -174,7 +174,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'beauty-glow',
         name: 'Beauty Glow',
         description: 'Design pastel élégant pour cosmétiques et skincare. Couleurs douces, typographie féminine, trust elements.',
-        category: 'beauty',
+        category: 'niche',
         thumbnail: 'https://images.unsplash.com/photo-1596462502278-27bfdd403cc2?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1596462502278-27bfdd403cc2?w=1200',
@@ -193,7 +193,7 @@ export const SHOPIFY_TEMPLATES: ShopifyTemplate[] = [
         id: 'home-cozy',
         name: 'Home Cozy',
         description: 'Atmosphère chaleureuse pour décoration et maison. Photos lifestyle, bundles et room planner.',
-        category: 'home',
+        category: 'generalist',
         thumbnail: 'https://images.unsplash.com/photo-1616489953125-c586d60c7f2d?w=800',
         previewImages: [
             'https://images.unsplash.com/photo-1616489953125-c586d60c7f2d?w=1200',

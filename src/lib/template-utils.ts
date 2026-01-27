@@ -4,9 +4,9 @@ import { ShopifyTemplate, SHOPIFY_TEMPLATES } from '@/lib/template-data';
  * Get template preview HTML
  */
 export function getTemplatePreviewHtml(template: ShopifyTemplate): string {
-    const { themeColor, accentColor, fontFamily, name, layout } = template;
+  const { themeColor, accentColor, fontFamily, name, layout } = template;
 
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -41,7 +41,7 @@ export function getTemplatePreviewHtml(template: ShopifyTemplate): string {
     .hero h1 { 
       font-size: ${layout === 'bold' ? '4rem' : '2.5rem'}; 
       margin-bottom: 1rem; 
-      ${template.category === 'hacking' ? `text-shadow: 0 0 10px ${accentColor};` : ''}
+      ${template.id === 'hacker-ui' ? `text-shadow: 0 0 10px ${accentColor};` : ''}
     }
     .hero p { opacity: 0.7; max-width: 600px; ${layout !== 'editorial' ? 'margin: 0 auto;' : ''} }
     .hero .cta {
@@ -95,7 +95,7 @@ export function getTemplatePreviewHtml(template: ShopifyTemplate): string {
       opacity: 0.6;
       font-size: 0.875rem;
     }
-    ${template.category === 'hacking' ? `
+    ${template.id === 'hacker-ui' ? `
     @keyframes glitch {
       0%, 100% { text-shadow: -2px 0 ${accentColor}, 2px 0 #ff0000; }
       50% { text-shadow: 2px 0 ${accentColor}, -2px 0 #ff0000; }

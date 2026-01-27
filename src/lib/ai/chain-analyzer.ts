@@ -73,6 +73,10 @@ export interface FullAnalyzedProduct extends AliExpressProduct {
 // STEP 1: MOMENTUM ANALYSIS
 // ============================================
 
+// ============================================
+// STEP 1: MOMENTUM ANALYSIS
+// ============================================
+
 export function analyzeMomentum(
     totalSales: number,
     storeAgeDays: number = 30 // Default 30 days if unknown
@@ -84,21 +88,21 @@ export function analyzeMomentum(
     let score: number;
     let reason: string;
 
-    if (salesPerDay >= 50) {
+    if (salesPerDay >= 100) {
         status = 'explosive';
         score = 95;
         reason = `Momentum explosif: ${Math.round(salesPerDay)} ventes/jour en ${storeAgeDays} jours`;
-    } else if (salesPerDay >= 20) {
+    } else if (salesPerDay >= 40) {
         status = 'strong';
         score = 80;
         reason = `Momentum fort: ${Math.round(salesPerDay)} ventes/jour, tendance confirmée`;
-    } else if (salesPerDay >= 5) {
+    } else if (salesPerDay >= 10) {
         status = 'moderate';
         score = 60;
         reason = `Momentum modéré: ${Math.round(salesPerDay)} ventes/jour, potentiel à valider`;
     } else {
         status = 'weak';
-        score = 35;
+        score = 30;
         reason = `Momentum faible: ${Math.round(salesPerDay)} ventes/jour, risque élevé`;
     }
 
@@ -119,7 +123,7 @@ export function checkQualityGate(
     rating: number,
     positiveFeedback: number = 95 // Default to 95% if unknown
 ): QualityGate {
-    const minRating = 4.7;
+    const minRating = 4.8; // Increased strictness
     const minFeedback = 95;
 
     const ratingPassed = rating >= minRating;
@@ -309,7 +313,20 @@ export async function analyzeWithChainOfThought(
     const profitability = calculateProfitability(product.price, momentum.salesPerDay);
 
     if (profitability.netMarginPerUnit < 15) {
-        reasoning.push(`⚠️ Étape 3 - Marge: ${profitability.netMarginPerUnit.toFixed(2)}€/unité (< 15€ recommandé)`);
+        reasoning.push(`❌ Étape 3 - Marge: REJET - ${profitability.netMarginPerUnit.toFixed(2)}€/unité (< 15€ requis)`);
+
+        // Return rejected analysis due to low margin
+        return {
+            momentum,
+            qualityGate,
+            profitability,
+            saturation: { level: 'low', competitorCount: 0, scoreImpact: 0, foundInStores: [] },
+            finalScore: 0,
+            status: 'rejected',
+            reasoning,
+            estimatedMonthlyProfit: 0,
+            adDifficulty: 'hard'
+        };
     } else {
         reasoning.push(`💰 Étape 3 - Marge: ${profitability.netMarginPerUnit.toFixed(2)}€/unité, Profit mensuel estimé: ${profitability.estimatedMonthlyProfit}€`);
     }
