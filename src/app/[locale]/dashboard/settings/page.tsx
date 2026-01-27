@@ -35,9 +35,9 @@ export default async function SettingsPage() {
           {user.shopifyConnected ? (
             <Button variant="outline" className="text-red-400 border-red-900/50">Déconnecter</Button>
           ) : (
-            <Link href="/api/shopify/connect">
+            <a href="/api/shopify/connect">
               <Button>Connecter ma boutique</Button>
-            </Link>
+            </a>
           )}
         </div>
       </Card>
@@ -56,9 +56,9 @@ export default async function SettingsPage() {
               <Button className="bg-blue-600 hover:bg-blue-500">Devenir Pro</Button>
             </Link>
           ) : (
-            <Link href="/api/stripe/portal">
+            <a href="/api/stripe/portal">
               <Button variant="outline">Gérer mon abonnement</Button>
-            </Link>
+            </a>
           )}
         </div>
       </Card>
