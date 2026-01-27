@@ -22,27 +22,27 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
           console.log(`[Auth] Attempting login for ${email}`);
-          
+
           const user = await getUser(email);
           if (!user) {
             console.log(`[Auth] User not found: ${email}`);
             return null;
           }
-          
+
           if (!user.password) {
-             console.log(`[Auth] User has no password (OAuth?): ${email}`);
-             return null;
+            console.log(`[Auth] User has no password (OAuth?): ${email}`);
+            return null;
           }
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
           if (passwordsMatch) {
-             console.log(`[Auth] Login successful for ${email}`);
-             return user;
+            console.log(`[Auth] Login successful for ${email}`);
+            return user;
           } else {
-             console.log(`[Auth] Invalid password for ${email}`);
+            console.log(`[Auth] Invalid password for ${email}`);
           }
         } else {
-            console.log("[Auth] Invalid input format");
+          console.log("[Auth] Invalid input format");
         }
 
         return null;
@@ -52,6 +52,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   callbacks: {
     async session({ session, token }) {
       if (session.user && token.sub) {
+        session.user.id = token.sub; // Fix: Explicitly assign ID
         const user = await db.user.findUnique({ where: { id: token.sub } });
         if (user) {
           session.user.subscription = user.subscription;
