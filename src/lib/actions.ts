@@ -88,10 +88,22 @@ export async function register(
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const phoneNumber = formData.get('phoneNumber') as string; // NEW
+  const phoneNumber = formData.get('phoneNumber') as string;
 
   if (!email || !password || !name || !phoneNumber) {
     return 'Tous les champs sont requis (Email, Mot de passe, Nom, Téléphone).';
+  }
+
+  // Security Rule: Bad Words Filter
+  const BAD_WORDS = ['admin', 'root', 'support', 'modo', 'moderator', 'insulte', 'badword', 'hitler'];
+  if (BAD_WORDS.some(word => name.toLowerCase().includes(word))) {
+    return "Ce nom n'est pas autorisé.";
+  }
+
+  // Security Rule: Strict Phone Format
+  // Basic check: must start with + and have at least 8 digits
+  if (!phoneNumber.startsWith('+') || phoneNumber.length < 8) {
+    return "Format de téléphone invalide. Utilisez le format international (ex: +33...).";
   }
 
   // Security Rule: Strict Password Validation
@@ -118,7 +130,7 @@ export async function register(
         name,
         email,
         password: hashedPassword,
-        phoneNumber, // Save verified phone
+        phoneNumber, // Saves the number, but verification (OTP) happens in Settings
         subscription: 'free',
         subscriptionPlan: 'monthly',
         language: 'fr'
