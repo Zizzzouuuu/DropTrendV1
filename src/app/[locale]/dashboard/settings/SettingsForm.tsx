@@ -12,7 +12,7 @@ interface SettingsFormProps {
     name: string | null;
     email: string | null;
     language: string;
-    phoneNumber: string | null;
+    phoneNumber?: string | null;
   };
 }
 
