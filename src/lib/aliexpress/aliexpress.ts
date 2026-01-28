@@ -116,17 +116,30 @@ export async function searchAliExpressProducts(
             }
         }
 
+        const processedIds = new Set<string>();
+
         // Parse and filter products
         return flattenedItems
             .map((item: any) => parseProduct(item))
             .filter((product: AliExpressSearchResult) => {
-                if (product.price <= 0) return false;
+                // 1. Deduplication
+                if (processedIds.has(product.id)) return false;
+                processedIds.add(product.id);
+
+                // 2. Data Integrity
+                if (!product.id || !product.imageUrl) return false;
+
+                // 3. Price Filtering
+                // Ignore zero price or suspiciously high price if not filtering
+                if (product.price <= 0.1) return false;
+                if (product.price > 1000) return false; // Hard cap safety
+
                 if (minPrice && product.price < minPrice) return false;
                 if (maxPrice && product.price > maxPrice) return false;
+
                 return true;
             })
             .slice(0, limit);
-
     } catch (error) {
         console.error('[AliExpress API] Exception:', error);
         return [];
