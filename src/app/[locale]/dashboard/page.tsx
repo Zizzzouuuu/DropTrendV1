@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
-import ProfitCalculator from "@/components/dashboard/ProfitCalculator";
-import { UpgradeBanner } from "@/components/dashboard/UpgradeBanner";
+import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import { redirect } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { db } from "@/lib/db";
@@ -23,8 +22,10 @@ export default async function DashboardPage() {
 
     return (
       <div className="p-8 min-h-screen bg-slate-950/50">
-        {isFree && <UpgradeBanner />}
-        <ProfitCalculator />
+        <DashboardOverview
+          userName={session.user.name || "Travailleur"}
+          isPro={!isFree}
+        />
       </div>
     );
   } catch (error) {

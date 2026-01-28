@@ -21,9 +21,14 @@ export async function GET(req: NextRequest) {
 
     try {
         const authUrl = getShopifyAuthUrl(shop);
+        console.log(`[Shopify Auth] Redirecting to: ${authUrl}`);
         return NextResponse.redirect(authUrl);
     } catch (error) {
         console.error("Shopify Auth Error:", error);
-        return NextResponse.redirect(new URL('/fr/dashboard/settings?error=config_error', req.url));
+        // Determine if it's missing keys
+        const isMissingKeys = (error as Error).message.includes("Missing Shopify Environment Variables");
+        const errorType = isMissingKeys ? 'missing_keys' : 'config_error';
+
+        return NextResponse.redirect(new URL(`/fr/dashboard/settings?error=${errorType}`, req.url));
     }
 }

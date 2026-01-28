@@ -15,6 +15,7 @@ export interface AliExpressSearchResult {
     shippingInfo?: string;
     productUrl: string;
     supplier?: string;
+    category?: string;
 }
 
 export interface AliExpressProductDetails extends AliExpressSearchResult {

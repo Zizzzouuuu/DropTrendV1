@@ -177,104 +177,117 @@ export default function TemplatesClient({ templates, isPro, isShopifyConnected }
                 </Card>
             </div>
 
-            {/* Templates Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Templates Grid with Premium Design */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredTemplates.map((template) => (
-                    <Card
+                    <div
                         key={template.id}
-                        className={`overflow-hidden group hover:border-blue-500/50 transition-all ${template.isLocked ? 'relative' : ''}`}
+                        className={`group relative rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/20 hover:border-blue-500/30 hover:-translate-y-1 ${template.isLocked ? 'grayscale-[0.3]' : ''}`}
                     >
-                        {/* Locked Overlay */}
-                        {template.isLocked && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6 text-center">
-                                <div className="bg-gradient-to-br from-purple-600 to-pink-600 p-4 rounded-full mb-3 shadow-xl">
-                                    <Lock size={24} className="text-white" />
-                                </div>
-                                <h3 className="text-white font-bold mb-1">Template PRO</h3>
-                                <p className="text-slate-400 text-sm mb-4">Passez Pro pour accéder à ce template premium</p>
-                                <Link href="/pricing">
-                                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600">
-                                        <Crown size={14} className="mr-1" />
-                                        Débloquer
-                                    </Button>
-                                </Link>
-                            </div>
-                        )}
-
-                        {/* Image */}
-                        <div className={`h-48 overflow-hidden relative ${template.isLocked ? 'blur-[2px]' : ''}`}>
+                        {/* Image & Overlay */}
+                        <div className="relative h-56 overflow-hidden">
                             <img
                                 src={template.thumbnail}
                                 alt={template.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80" />
 
-                            {/* Badges */}
-                            <div className="absolute top-3 left-3 flex gap-2">
-                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${CATEGORY_LABELS[template.category]?.color || 'bg-slate-500/10 text-slate-400'}`}>
+                            {/* Top Badges */}
+                            <div className="absolute top-4 left-4 flex gap-2">
+                                <Badge className={`${CATEGORY_LABELS[template.category]?.color || 'bg-slate-700'} border-0 shadow-lg backdrop-blur-md`}>
                                     {CATEGORY_LABELS[template.category]?.label || template.category}
-                                </span>
+                                </Badge>
                                 {template.isPro && (
-                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center gap-1">
+                                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-lg flex items-center gap-1">
                                         <Crown size={10} /> PRO
-                                    </span>
+                                    </Badge>
                                 )}
                             </div>
 
-                            {/* Rating */}
-                            <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-yellow-400 flex items-center gap-1">
-                                <Star size={10} fill="currentColor" /> {template.rating}
-                            </div>
+                            {/* Locked Overlay */}
+                            {template.isLocked && (
+                                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
+                                    <div className="p-3 rounded-full bg-slate-900/90 border border-slate-700 shadow-xl mb-3">
+                                        <Lock size={20} className="text-slate-400" />
+                                    </div>
+                                    <Link href="/pricing">
+                                        <Button size="sm" className="bg-white text-black hover:bg-slate-200 font-bold">
+                                            Débloquer
+                                        </Button>
+                                    </Link>
+                                </div>
+                            )}
 
-                            {/* Hover Actions */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <Button size="sm" onClick={() => { setSelectedTemplate(template); setPreviewMode('details'); }}>
-                                    <Eye size={16} className="mr-1" /> Aperçu
-                                </Button>
-                            </div>
+                            {/* Hover Actions (Preview) */}
+                            {!template.isLocked && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-[1px]">
+                                    <Button
+                                        onClick={() => { setSelectedTemplate(template); setPreviewMode('details'); }}
+                                        className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white rounded-full px-6"
+                                    >
+                                        <Eye size={18} className="mr-2" /> Aperçu Rapide
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Content */}
-                        <div className={`p-4 ${template.isLocked ? 'blur-[2px]' : ''}`}>
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-white">{template.name}</h3>
-                                <span className="text-xs text-slate-500">{template.downloads.toLocaleString()} téléchargements</span>
+                        <div className="p-5">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 className="text-lg font-bold text-white leading-tight mb-1 group-hover:text-blue-400 transition-colors">
+                                        {template.name}
+                                    </h3>
+                                    <div className="flex items-center gap-1 text-yellow-500 text-xs font-medium">
+                                        <Star size={12} fill="currentColor" />
+                                        <span>{template.rating}</span>
+                                        <span className="text-slate-600 mx-1">•</span>
+                                        <span className="text-slate-500">{template.downloads.toLocaleString()} installés</span>
+                                    </div>
+                                </div>
                             </div>
-                            <p className="text-slate-400 text-sm mb-4 line-clamp-2">{template.description}</p>
 
-                            {/* Features Preview */}
-                            <div className="flex flex-wrap gap-1 mb-4">
+                            <p className="text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed">
+                                {template.description}
+                            </p>
+
+                            {/* Features Tags */}
+                            <div className="flex flex-wrap gap-2 mb-6">
                                 {template.features.slice(0, 3).map((feature, i) => (
-                                    <span key={i} className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                                    <span key={i} className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700/50">
                                         {feature}
                                     </span>
                                 ))}
-                                {template.features.length > 3 && (
-                                    <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-500">
-                                        +{template.features.length - 3}
-                                    </span>
-                                )}
                             </div>
 
-                            <div className="flex gap-2">
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
                                 <Button
-                                    className="flex-1"
-                                    onClick={() => { setSelectedTemplate(template); setPreviewMode('details'); }}
-                                    disabled={template.isLocked}
-                                >
-                                    <Eye size={16} className="mr-1" /> Détails
-                                </Button>
-                                <Button
-                                    variant={isShopifyConnected ? "primary" : "outline"}
+                                    className={`flex-1 h-11 font-semibold rounded-xl transition-all ${isShopifyConnected
+                                            ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20'
+                                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                                        }`}
                                     onClick={() => handleInstall(template.id)}
-                                    disabled={template.isLocked || !isShopifyConnected}
-                                    title={!isShopifyConnected ? "Connectez Shopify d'abord" : "Importer vers Shopify"}
+                                    disabled={template.isLocked || !isShopifyConnected && !isPro}
+                                // Logic correction: allowed to click if free or pro unlocked (handled by isLocked), 
+                                // but if not connected show alert (handled in function)
                                 >
-                                    {isShopifyConnected ? <Upload size={16} /> : <Store size={16} />}
+                                    {isShopifyConnected ? (
+                                        <>
+                                            <Upload size={16} className="mr-2" />
+                                            Importer
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Store size={16} className="mr-2" />
+                                            Connecter
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>
-                    </Card>
+                    </div>
                 ))}
             </div>
 

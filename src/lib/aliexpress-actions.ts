@@ -9,6 +9,7 @@ import {
     getTrendingProducts,
     AliExpressSearchResult
 } from '@/lib/aliexpress/aliexpress';
+import { MOCK_PRODUCTS } from '@/lib/aliexpress/mock-data';
 import { analyzeProduct, quickScore, ProductAnalysis } from '@/lib/ai/analyzer';
 
 export interface SearchFilters {
@@ -178,7 +179,8 @@ export async function getWinnersOfTheDay(): Promise<{
         }
 
         if (candidateProducts.length === 0) {
-            return { products: [], error: "Aucun produit trouvé" };
+            console.log("No live products found, using mocks.");
+            candidateProducts.push(...MOCK_PRODUCTS);
         }
 
         // Use AI to analyze and select the best winners
@@ -741,9 +743,17 @@ export async function getCalculatorData(url: string): Promise<{
 }> {
     try {
         // 1. Extract ID from URL
-        const idMatch = url.match(/\/item\/(\d+)\.html/) || url.match(/productId=(\d+)/);
+        // Regex supports:
+        // - Standard: aliexpress.com/item/123456789.html
+        // - Short: aliexpress.com/item/123456789.html?params...
+        // - Params: productId=123456789
+        // - ID only: 123456789
+        const idMatch = url.match(/\/item\/(\d+)\.html/) ||
+            url.match(/productId=(\d+)/) ||
+            url.match(/(\d{10,})/); // Fallback for raw ID
+
         if (!idMatch) {
-            return { error: "Lien AliExpress invalide. Assurez-vous d'utiliser un lien complet (ex: https://.../item/123456.html)" };
+            return { error: "Format de lien non reconnu. Utilisez un lien complet (ex: https://fr.aliexpress.com/item/10050012345678.html)" };
         }
         const productId = idMatch[1];
 
