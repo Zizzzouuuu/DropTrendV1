@@ -22,8 +22,8 @@ export async function submitTeamCode(formData: FormData) {
         // The middleware will handle the locale redirect if needed, or we can just refresh.
         // However, server actions redirect is the best way.
 
-        // We'll redirect to /dashboard which should now be accessible
-        redirect('/dashboard');
+        // We'll redirect to /fr/dashboard which should now be accessible
+        redirect('/fr/dashboard');
     }
 
     return { error: 'Code incorrect' };
