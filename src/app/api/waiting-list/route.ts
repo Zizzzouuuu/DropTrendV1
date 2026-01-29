@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 
 const emailSchema = z.object({
-    email: z.string().email("Email invalide"),
+    email: z.string().email("Invalid email"),
 });
 
 export async function POST(req: NextRequest) {
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         if (existing) {
             return NextResponse.json(
-                { message: "Vous êtes déjà inscrit !" },
+                { message: "You are already registered!" },
                 { status: 200 }
             );
         }
@@ -41,13 +41,13 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json(
-            { message: "Inscription réussie ! On vous tient au courant." },
+            { message: "Registration successful! We'll keep you posted." },
             { status: 201 }
         );
     } catch (error) {
         console.error("Waiting List Error:", error);
         return NextResponse.json(
-            { error: "Une erreur est survenue." },
+            { error: "An error occurred." },
             { status: 500 }
         );
     }

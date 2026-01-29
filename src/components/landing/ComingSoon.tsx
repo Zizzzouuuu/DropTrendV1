@@ -81,25 +81,25 @@ export default function ComingSoon() {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                         </span>
-                        <span className="text-xs font-bold text-slate-300 tracking-wider">LANCEMENT IMMINENT</span>
+                        <span className="text-xs font-bold text-slate-300 tracking-wider">LAUNCHING SOON</span>
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-playfair font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 mb-6 drop-shadow-2xl">
                         DROPTREND
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                        La première plateforme Tout-en-un pour dominer le Dropshipping. <br />
-                        <span className="text-blue-400 font-bold">Produits • Analyse • Espionnage</span>
+                        The #1 All-in-One Platform to dominate Dropshipping. <br />
+                        <span className="text-blue-400 font-bold">Products • Analysis • Spying</span>
                     </p>
                 </div>
 
                 {/* Countdown */}
                 <div className="grid grid-cols-4 gap-4 md:gap-8 max-w-2xl mx-auto animate-in fade-in zoom-in duration-700 delay-200">
                     {[
-                        { label: 'Jours', value: timeLeft.days },
-                        { label: 'Heures', value: timeLeft.hours },
+                        { label: 'Days', value: timeLeft.days },
+                        { label: 'Hours', value: timeLeft.hours },
                         { label: 'Minutes', value: timeLeft.minutes },
-                        { label: 'Secondes', value: timeLeft.seconds }
+                        { label: 'Seconds', value: timeLeft.seconds }
                     ].map((item, i) => (
                         <div key={i} className="flex flex-col items-center">
                             <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-slate-900/50 border border-slate-800 backdrop-blur-xl flex items-center justify-center shadow-2xl">
@@ -117,14 +117,14 @@ export default function ComingSoon() {
                 {/* Email Capture */}
                 <div className="max-w-md mx-auto w-full animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
                     <div className="bg-slate-900/40 p-6 md:p-8 rounded-3xl border border-slate-800 backdrop-blur-sm">
-                        <h3 className="text-white font-bold mb-2">Rejoignez la Waiting List</h3>
-                        <p className="text-slate-400 text-sm mb-6">Soyez averti dès l'ouverture et recevez un cadeau exclusif.</p>
+                        <h3 className="text-white font-bold mb-2">Join the Waiting List</h3>
+                        <p className="text-slate-400 text-sm mb-6">Get notified at launch and receive an exclusive gift.</p>
 
                         <form onSubmit={handleSubmit} className="relative group">
                             <input
                                 type="email"
                                 required
-                                placeholder="votre@email.com"
+                                placeholder="your@email.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={status === 'loading' || status === 'success'}
@@ -150,7 +150,7 @@ export default function ComingSoon() {
             </div>
 
             <div className="absolute bottom-6 text-slate-600 text-xs text-center w-full">
-                &copy; 2026 DropTrend. Tous droits réservés. <Lock size={10} className="inline ml-1 mb-0.5" />
+                &copy; 2026 DropTrend. All rights reserved. <Lock size={10} className="inline ml-1 mb-0.5" />
             </div>
         </div>
     );

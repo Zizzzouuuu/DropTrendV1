@@ -36,7 +36,8 @@ export default async function middleware(req: NextRequest) {
     pathWithoutLocale !== '/' &&
     !pathname.startsWith('/api') &&
     !pathname.startsWith('/_next') &&
-    !pathname.includes('.') // file extensions
+    !pathname.includes('.') && // file extensions
+    !req.cookies.has('team_access') // BYPASS: Allow access if team cookie exists
   ) {
     // Redirect to localized home which shows Coming Soon
     return NextResponse.redirect(new URL(`/${locale}`, req.url));
