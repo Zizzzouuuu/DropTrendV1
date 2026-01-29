@@ -235,3 +235,10 @@ model PhoneVerification {
   expiresAt   DateTime
   createdAt   DateTime @default(now())
 }
+
+model WaitingList {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  ipAddress String?
+  createdAt DateTime @default(now())
+}

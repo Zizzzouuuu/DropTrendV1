@@ -22,19 +22,35 @@ export default async function middleware(req: NextRequest) {
   // 2. Run Intl Middleware to handle locale redirects and rewrites
   const res = intlMiddleware(req);
 
-  // 3. Auth Logic
+  // 3. Auth Logic & Pre-Launch Block
   const session = await auth();
 
   // Extract locale from path
   const locale = routing.locales.find(l => pathname.startsWith(`/${l}`)) || routing.defaultLocale;
   const pathWithoutLocale = pathname.replace(new RegExp(`^/(${routing.locales.join('|')})`), '') || '/';
 
+  // BLOCK EVERYTHING EXCEPT HOME & API
+  // We allow /api routes for the waiting list form
+  // We allow static assets (handled by matcher usually, but good to be safe)
+  if (
+    pathWithoutLocale !== '/' &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/_next') &&
+    !pathname.includes('.') // file extensions
+  ) {
+    // Redirect to localized home which shows Coming Soon
+    return NextResponse.redirect(new URL(`/${locale}`, req.url));
+  }
+
+  // Original Auth Logic (Kept but effectively bypassed by the block above for now)
+  /*
   const isAuthRoute = pathWithoutLocale.startsWith('/dashboard');
 
   if (isAuthRoute && !session?.user) {
     const loginUrl = new URL(`/${locale}/login`, req.url);
     return NextResponse.redirect(loginUrl);
   }
+  */
 
   // 4. Security Headers
   if (res) {
