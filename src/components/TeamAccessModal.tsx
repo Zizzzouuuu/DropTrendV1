@@ -21,7 +21,7 @@ export default function TeamAccessModal() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-4 right-4 text-slate-800 hover:text-slate-600 dark:text-slate-900 dark:hover:text-slate-800 text-xs transition-colors z-50 opacity-50 hover:opacity-100"
+                className="fixed bottom-4 right-4 text-white/30 hover:text-white hover:scale-110 transition-all z-[9999] cursor-pointer"
             >
                 Team Access
             </button>
